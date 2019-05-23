@@ -1,6 +1,7 @@
 import pyaudio
 import wave
-
+import sys
+import keyboard
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 2
@@ -17,12 +18,17 @@ stream = p.open(format=FORMAT,
 print("* Started")
 
 
+while True:
+    try:
+        data = stream.read(CHUNK)
+        print(data)
+    except KeyboardInterrupt:
+        break
 
-    data = stream.read(CHUNK)
-    print(data)
 
 print("* Stoped")
 
 stream.stop_stream()
 stream.close()
 p.terminate()
+
