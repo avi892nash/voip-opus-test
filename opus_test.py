@@ -1,3 +1,3 @@
 import subprocess
 
-subprocess.Popen(["libopus/opusinfo.exe"])
+subprocess.Popen(["opusenc","sample.wav","sample.opus"])
