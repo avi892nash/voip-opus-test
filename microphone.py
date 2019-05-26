@@ -1,10 +1,10 @@
 import pyaudio
 import wave
 import sys
-import keyboard
+
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
-CHANNELS = 2
+CHANNELS = 1
 RATE = 44100
 
 p = pyaudio.PyAudio()
