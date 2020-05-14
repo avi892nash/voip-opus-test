@@ -1,7 +1,6 @@
 import socket
 import pyaudio
 import time 
-
 p = pyaudio.PyAudio()
 
 inAddress = "127.0.0.1"
@@ -26,17 +25,16 @@ def sendtoDost(in_data, frame_count, time_info, status):
     return (in_data, pyaudio.paContinue)
 
 ## input stream that take input from mic from laptop
-inStream = p.open(format=8, channels=1, rate=44100, input=True, stream_callback=sendtoDost)
+inStream = p.open(format=8, channels=2, rate=44100, input=True, output=True, stream_callback=sendtoDost)
 
 
 inStream.start_stream()
-# outStream.start_stream()
+outStream.start_stream()
 
-while inStream.is_active(): 
-    time.sleep(0.1)
+while inStream.is_active():
+    
     try:
-        data, ip = inSocket.recvfrom(2048)
-        print(data)
+        data, ip = inSocket.recvfrom(4096)
         outStream.write(data)
     except KeyboardInterrupt:
         break
