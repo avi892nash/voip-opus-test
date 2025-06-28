@@ -1,13 +1,53 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans text-gray-800 bg-white min-h-screen pt-20;
+  }
+  
+  code {
+    @apply font-mono;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer components {
+  .btn {
+    @apply px-6 py-3 rounded-lg font-medium transition-all duration-300 inline-flex items-center justify-center;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-500 text-white hover:bg-primary-600 transform hover:scale-105;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-primary-500 border-2 border-white hover:bg-gray-50;
+  }
+  
+  .section {
+    @apply py-20 bg-white;
+  }
+  
+  .section-title {
+    @apply text-center text-4xl font-bold mb-12 text-gray-800;
+  }
+  
+  .container {
+    @apply max-w-6xl mx-auto px-8;
+  }
+  
+  .fade-in {
+    @apply opacity-0 transform translate-y-8 transition-all duration-700;
+  }
+  
+  .fade-in.visible {
+    @apply opacity-100 translate-y-0;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-accent-red to-accent-orange bg-clip-text text-transparent;
+  }
 }

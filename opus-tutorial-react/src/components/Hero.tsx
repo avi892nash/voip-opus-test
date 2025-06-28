@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import './Hero.css';
+import HeroAnimation from './HeroAnimation';
 
 const Hero: React.FC = () => {
   const scrollToSection = (sectionId: string) => {
@@ -11,26 +11,26 @@ const Hero: React.FC = () => {
   };
 
   return (
-    <section id="home" className="hero">
-      <div className="hero-container">
+    <section id="home" className="pt-36 pb-20 bg-gradient-to-br from-primary-500 to-secondary-500 text-white min-h-screen flex items-center -mt-20">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center px-8">
         <motion.div 
-          className="hero-content"
+          className="space-y-6"
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
           <motion.h1 
-            className="hero-title"
+            className="text-5xl lg:text-6xl font-bold leading-tight"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            Learn the <span className="highlight">Opus Codec</span><br />
+            Learn the <span className="text-gradient">Opus Codec</span><br />
             Through Visual Animation
           </motion.h1>
           
           <motion.p 
-            className="hero-subtitle"
+            className="text-xl opacity-90 mb-8"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
@@ -39,7 +39,7 @@ const Hero: React.FC = () => {
           </motion.p>
           
           <motion.div 
-            className="hero-buttons"
+            className="flex gap-4 flex-wrap"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
@@ -65,17 +65,13 @@ const Hero: React.FC = () => {
         </motion.div>
         
         <motion.div 
-          className="hero-visual"
+          className="flex justify-center items-center"
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
         >
-          <div className="animation-container">
-            <div style={{ textAlign: 'center', color: 'white', fontSize: '1.2rem' }}>
-              🎵 Audio Visualization
-              <br />
-              <small>Interactive animations coming soon...</small>
-            </div>
+          <div className="w-80 h-80 lg:w-96 lg:h-96 rounded-2xl bg-white bg-opacity-10 backdrop-blur-sm shadow-2xl flex items-center justify-center overflow-hidden">
+            <HeroAnimation />
           </div>
         </motion.div>
       </div>

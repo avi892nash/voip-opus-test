@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './components/Navbar';
@@ -8,12 +7,11 @@ import OpusCodec from './components/OpusCodec';
 import InteractiveDemo from './components/InteractiveDemo';
 import P2PVoIP from './components/P2PVoIP';
 import Footer from './components/Footer';
-import './App.css';
 
 function App() {
   return (
     <Router>
-      <div className="App">
+      <div className="min-h-screen">
         <Navbar />
         <AnimatePresence mode="wait">
           <Routes>

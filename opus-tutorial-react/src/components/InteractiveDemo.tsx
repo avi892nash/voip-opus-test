@@ -16,19 +16,17 @@ const InteractiveDemo: React.FC = () => {
         </motion.h2>
         
         <motion.div 
-          className="demo-container"
+          className="bg-gray-50 rounded-2xl p-12 text-center max-w-2xl mx-auto"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           viewport={{ once: true }}
         >
-          <div style={{ textAlign: 'center', padding: '3rem' }}>
-            <h3>Interactive Demo Coming Soon!</h3>
-            <p>Upload audio files, adjust parameters, and see real-time compression in action.</p>
-            <div style={{ marginTop: '2rem' }}>
-              <button className="btn btn-primary">Try Demo</button>
-            </div>
-          </div>
+          <h3 className="text-2xl font-semibold text-gray-800 mb-4">Interactive Demo Coming Soon!</h3>
+          <p className="text-lg text-gray-600 mb-8">
+            Upload audio files, adjust parameters, and see real-time compression in action.
+          </p>
+          <button className="btn btn-primary">Try Demo</button>
         </motion.div>
       </div>
     </section>
