@@ -1,104 +1,141 @@
-# Opus Tutorial React App
+# Opus Codec Tutorial - Interactive Demo
 
-A modern, interactive tutorial for learning the Opus audio codec, built with **Vite**, **React 19**, **TypeScript**, and **Tailwind CSS**.
+An interactive web application demonstrating the Opus audio codec with real-time visualizations, audio processing, and educational content.
 
-## 🚀 Features
+## Features
 
-- **Fast Development**: Powered by Vite for lightning-fast hot module replacement
-- **Modern Styling**: Tailwind CSS for utility-first, responsive design
-- **Interactive Animations**: Framer Motion for smooth, engaging animations
-- **Audio Visualizations**: Custom canvas animations and P5.js integrations
-- **TypeScript**: Full type safety throughout the application
-- **Responsive Design**: Mobile-first approach with Tailwind responsive utilities
+### 🎨 Enhanced Visual Animations
 
-## 🛠️ Tech Stack
+#### OpusCodec Component
+- **Step-by-step encoding process visualization** with interactive animations
+- **Real-time compression workflow** showing audio input → frame splitting → encoding → output
+- **Quality vs bitrate tradeoff controls** with live feedback
+- **Interactive step navigation** with detailed explanations
 
-- **React 19** - Latest React with concurrent features
-- **Vite** - Next generation frontend tooling
-- **TypeScript** - Static type checking
-- **Tailwind CSS** - Utility-first CSS framework
-- **Framer Motion** - Production-ready motion library
-- **React Router** - Declarative routing
-- **P5.js** - Creative coding library for animations
+#### AudioBasics Component
+- **Real-time waveform visualization** comparing original vs compressed audio
+- **Frequency spectrum analysis** showing how compression affects different frequencies
+- **Interactive compression level controls** with live file size calculations
+- **Before/after compression comparison** with animated transitions
 
-## 📦 Getting Started
+### 🎵 Interactive Audio Demos
 
-### Prerequisites
+#### Real Audio Processing Demo
+- **Microphone input support** with real-time audio visualization
+- **File upload functionality** for audio samples (WAV, MP3, etc.)
+- **Client-side audio compression simulation** with configurable parameters
+- **Download compressed audio** as WAV files
 
-- Node.js 18+ 
-- npm or yarn
+#### Opus Configuration Playground
+- **Bitrate control** (8-128 kbps) with real-time quality feedback
+- **Complexity settings** (0-10) affecting encoding speed vs quality
+- **Frame size selection** (2.5ms to 60ms) for different use cases
+- **Channel configuration** (Mono/Stereo)
+- **Quality metrics display** including SNR and compression ratio
 
-### Installation
+### 📊 Real-time Analytics
+- **Signal-to-Noise Ratio (SNR)** calculations
+- **Compression ratio** measurements
+- **File size comparisons** between original and compressed audio
+- **Quality indicators** with color-coded feedback
 
-```bash
-# Install dependencies
-npm install
+## Technology Stack
 
-# Start development server
-npm run dev
+- **React 19** with TypeScript
+- **Framer Motion** for smooth animations
+- **P5.js** for audio visualizations
+- **Web Audio API** for real-time audio processing
+- **Tailwind CSS** for modern styling
+- **Vite** for fast development
 
-# Build for production
-npm run build
+## Getting Started
 
-# Preview production build
-npm run preview
-```
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-### Development
+2. **Start development server:**
+   ```bash
+   npm run dev
+   ```
 
-- **Dev Server**: `npm run dev` - Starts Vite dev server on `http://localhost:3000`
-- **Build**: `npm run build` - TypeScript compilation + Vite production build
-- **Preview**: `npm run preview` - Preview the production build locally
-- **Lint**: `npm run lint` - ESLint code analysis
+3. **Open in browser:**
+   Navigate to `http://localhost:5173`
 
-## 🎨 Project Structure
+## Usage
 
+### Interactive Demo
+1. Click "Start Recording" to use your microphone
+2. Or upload an audio file using the "Upload Audio" button
+3. Adjust Opus configuration parameters in the sidebar
+4. View real-time quality metrics and compression effects
+5. Download the processed audio file
+
+### Educational Content
+- Navigate through the step-by-step Opus encoding process
+- Explore audio compression concepts with interactive visualizations
+- Learn about quality vs bitrate tradeoffs
+- Understand frequency domain analysis
+
+## Browser Compatibility
+
+- **Chrome/Edge**: Full support for all features
+- **Firefox**: Full support for all features
+- **Safari**: Full support for all features
+- **Mobile browsers**: Limited microphone support
+
+## Development
+
+### Project Structure
 ```
 src/
-├── components/          # React components
-│   ├── AudioBasics.tsx  # Audio compression basics
-│   ├── Footer.tsx       # Site footer
-│   ├── Hero.tsx         # Landing hero section
-│   ├── HeroAnimation.tsx # Canvas-based hero animation
-│   ├── InteractiveDemo.tsx # Interactive demo placeholder
-│   ├── Navbar.tsx       # Navigation component
-│   ├── OpusCodec.tsx    # Opus codec explanation
-│   └── P2PVoIP.tsx      # P2P VoIP section
-├── hooks/               # Custom React hooks
-├── types/               # TypeScript type definitions
-├── utils/               # Utility functions
-├── App.tsx              # Main app component
-├── main.tsx             # App entry point (Vite)
-└── index.css            # Global styles (Tailwind)
+├── components/
+│   ├── AudioBasics.tsx      # Audio compression basics with visualizations
+│   ├── OpusCodec.tsx        # Step-by-step encoding process
+│   ├── InteractiveDemo.tsx  # Real audio processing demo
+│   └── ...
+├── hooks/                   # Custom React hooks
+├── utils/                   # Utility functions
+└── types/                   # TypeScript type definitions
 ```
 
-## 🎯 Learning Sections
+### Key Components
 
-1. **Audio Basics** - Understanding audio compression fundamentals
-2. **Opus Codec** - How the Opus codec works step-by-step
-3. **Interactive Demo** - Hands-on audio compression playground
-4. **P2P VoIP** - Building peer-to-peer voice applications
+#### AudioBasics.tsx
+- Real-time waveform visualization using P5.js
+- Frequency spectrum analysis
+- Interactive compression controls
+- File size calculations
 
-## 🔧 Configuration
+#### OpusCodec.tsx
+- Step-by-step encoding animation
+- Interactive quality vs bitrate controls
+- Detailed process explanations
+- Visual feedback on compression effects
 
-### Tailwind CSS
+#### InteractiveDemo.tsx
+- Web Audio API integration
+- Microphone input handling
+- File upload/download functionality
+- Opus configuration playground
+- Quality metrics calculation
 
-Custom theme configuration in `tailwind.config.js`:
-- Primary colors: Blue gradient (`#667eea` to `#764ba2`)
-- Custom animations and utilities
-- Extended spacing and typography
+## Contributing
 
-### Vite
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-Configuration in `vite.config.ts`:
-- React plugin for JSX support
-- Development server on port 3000
-- Build output to `build/` directory
+## License
 
-## 📝 License
+MIT License - see LICENSE file for details.
 
-This project is for educational purposes. See individual component licenses for details.
+## Acknowledgments
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- Opus codec specification and documentation
+- Web Audio API documentation
+- P5.js library for creative coding
+- Framer Motion for animations

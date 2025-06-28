@@ -44,10 +44,100 @@
   .fade-in.visible {
     @apply opacity-100 translate-y-0;
   }
+
+  /* Custom Slider Styling */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .slider::-webkit-slider-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 4px;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #3b82f6;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+  }
+
+  .slider::-moz-range-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+  }
+
+  .slider::-moz-range-thumb {
+    background: #3b82f6;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .slider::-moz-range-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+  }
+
+  /* Audio Visualization Styles */
+  .audio-canvas {
+    @apply bg-gray-50 rounded-lg border border-gray-200;
+  }
+
+  /* Quality Indicator Styles */
+  .quality-indicator {
+    @apply bg-gradient-to-r from-red-500 via-yellow-500 to-green-500;
+    transition: width 0.5s ease;
+  }
+
+  /* Animation Classes */
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-bounce-slow {
+    animation: bounce 2s infinite;
+  }
 }
 
 @layer utilities {
   .text-gradient {
     @apply bg-gradient-to-r from-accent-red to-accent-orange bg-clip-text text-transparent;
+  }
+
+  .bg-gradient-primary {
+    @apply bg-gradient-to-r from-blue-500 to-purple-600;
+  }
+
+  .bg-gradient-secondary {
+    @apply bg-gradient-to-r from-green-400 to-blue-500;
+  }
+
+  .shadow-soft {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-medium {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 }
