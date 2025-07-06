@@ -7,7 +7,16 @@ const AudioBasics: React.FC = () => {
   const [showSpectrum, setShowSpectrum] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const p5InstanceRef = useRef<p5 | null>(null);
+  
+  // Use refs to make state accessible to p5 instance
+  const compressionLevelRef = useRef(compressionLevel);
+  const showSpectrumRef = useRef(showSpectrum);
+  
+  // Update refs when state changes
+  compressionLevelRef.current = compressionLevel;
+  showSpectrumRef.current = showSpectrum;
 
+  // Create p5 instance only once
   useEffect(() => {
     if (canvasRef.current && !p5InstanceRef.current) {
       const sketch = (p: p5) => {
@@ -25,7 +34,7 @@ const AudioBasics: React.FC = () => {
         p.draw = () => {
           p.background(248, 250, 252);
           
-          if (showSpectrum) {
+          if (showSpectrumRef.current) {
             drawSpectrum(p);
           } else {
             drawWaveformComparison(p);
@@ -48,12 +57,12 @@ const AudioBasics: React.FC = () => {
         p5InstanceRef.current = null;
       }
     };
-  }, [compressionLevel, showSpectrum]);
+  }, []); // Remove dependencies to prevent recreation
 
   const drawWaveformComparison = (p: p5) => {
     const centerY = p.height / 2;
     const originalAmplitude = 60;
-    const compressedAmplitude = originalAmplitude * (compressionLevel / 100);
+    const compressedAmplitude = originalAmplitude * (compressionLevelRef.current / 100);
     
     // Draw original waveform (top)
     p.stroke(59, 130, 246);
@@ -98,7 +107,7 @@ const AudioBasics: React.FC = () => {
     p.fill(0);
     p.textAlign(p.CENTER);
     p.textSize(16);
-    p.text(`Compression: ${compressionLevel}%`, p.width/2, 30);
+    p.text(`Compression: ${compressionLevelRef.current}%`, p.width/2, 30);
   };
 
   const drawSpectrum = (p: p5) => {
@@ -112,7 +121,7 @@ const AudioBasics: React.FC = () => {
     
     // Draw multiple frequency components
     for (let freq = 1; freq <= 5; freq++) {
-      const amplitude = maxAmplitude * (1 - compressionLevel / 100) / freq;
+      const amplitude = maxAmplitude * (1 - compressionLevelRef.current / 100) / freq;
       const colorHue = p.map(freq, 1, 5, 0, 255);
       p.stroke(colorHue, 200, 200);
       
@@ -134,7 +143,7 @@ const AudioBasics: React.FC = () => {
     p.textSize(16);
     p.text('Frequency Spectrum Analysis', p.width/2, 30);
     p.textSize(12);
-    p.text(`Compression: ${compressionLevel}%`, p.width/2, p.height - 10);
+    p.text(`Compression: ${compressionLevelRef.current}%`, p.width/2, p.height - 10);
   };
 
   const calculateFileSize = (compression: number) => {

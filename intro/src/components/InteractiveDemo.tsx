@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import p5 from 'p5';
-import { OpusEncoder, OpusConfig } from '../utils/opusEncoder';
+import { OpusEncoder } from '../utils/opusEncoder';
 
 interface AudioConfig {
   bitrate: number;
@@ -15,7 +15,7 @@ const InteractiveDemo: React.FC = () => {
   const [audioData, setAudioData] = useState<Float32Array | null>(null);
   const [compressedData, setCompressedData] = useState<Float32Array | null>(null);
   const [actualCompressedSize, setActualCompressedSize] = useState<number>(0);
-  const [showConfig, setShowConfig] = useState(false);
+
   const [recordingComplete, setRecordingComplete] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isPlayingOpus, setIsPlayingOpus] = useState(false);
@@ -35,7 +35,20 @@ const InteractiveDemo: React.FC = () => {
   const recordingStartTimeRef = useRef<number | null>(null);
   const opusEncoderRef = useRef<OpusEncoder | null>(null);
   const playbackAudioContextRef = useRef<AudioContext | null>(null);
+  
+  // Use refs to make state accessible to p5 instance
+  const isRecordingRef = useRef(isRecording);
+  const audioDataRef = useRef(audioData);
+  const compressedDataRef = useRef(compressedData);
+  const recordingCompleteRef = useRef(recordingComplete);
+  
+  // Update refs when state changes
+  isRecordingRef.current = isRecording;
+  audioDataRef.current = audioData;
+  compressedDataRef.current = compressedData;
+  recordingCompleteRef.current = recordingComplete;
 
+  // Create p5 instance only once to prevent WebGL context accumulation
   useEffect(() => {
     if (canvasRef.current && !p5InstanceRef.current) {
       const sketch = (p: p5) => {
@@ -51,9 +64,9 @@ const InteractiveDemo: React.FC = () => {
         p.draw = () => {
           p.background(248, 250, 252);
           
-          if (isRecording && analyserRef.current) {
+          if (isRecordingRef.current && analyserRef.current) {
             drawLiveRecording(p);
-          } else if (recordingComplete && audioData) {
+          } else if (recordingCompleteRef.current && audioDataRef.current) {
             drawAudioComparison(p);
           } else {
             drawPlaceholder(p);
@@ -73,14 +86,35 @@ const InteractiveDemo: React.FC = () => {
         p5InstanceRef.current.remove();
         p5InstanceRef.current = null;
       }
-      
-      // Clean up playback audio context
+    };
+  }, []); // Remove dependencies to prevent recreation
+
+  // Cleanup effect for audio contexts and other resources
+  useEffect(() => {
+    return () => {
+      // Clean up audio contexts
       if (playbackAudioContextRef.current) {
         playbackAudioContextRef.current.close();
         playbackAudioContextRef.current = null;
       }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      
+      // Clean up media stream
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+      
+      // Clean up opus encoder
+      if (opusEncoderRef.current) {
+        opusEncoderRef.current.destroy();
+        opusEncoderRef.current = null;
+      }
     };
-  }, [isRecording, audioData, compressedData, recordingComplete]);
+  }, []);
 
   const drawLiveRecording = (p: p5) => {
     const analyser = analyserRef.current!;
@@ -117,7 +151,7 @@ const InteractiveDemo: React.FC = () => {
   };
 
   const drawAudioComparison = (p: p5) => {
-    if (!audioData) return;
+    if (!audioDataRef.current) return;
 
     const centerY = p.height / 2;
     const amplitude = 50;
@@ -138,6 +172,7 @@ const InteractiveDemo: React.FC = () => {
     p.noFill();
     p.beginShape();
     
+    const audioData = audioDataRef.current!;
     const step = Math.max(1, Math.floor(audioData.length / p.width));
     for (let i = 0; i < audioData.length; i += step) {
       const x = p.map(i, 0, audioData.length, 0, p.width);
@@ -147,11 +182,12 @@ const InteractiveDemo: React.FC = () => {
     p.endShape();
 
     // Draw compressed audio waveform (bottom half) - showing compression artifacts
-    if (compressedData) {
+    if (compressedDataRef.current) {
       p.stroke(239, 68, 68);
       p.strokeWeight(2);
       p.beginShape();
       
+      const compressedData = compressedDataRef.current;
       for (let i = 0; i < compressedData.length; i += step) {
         const x = p.map(i, 0, compressedData.length, 0, p.width);
         const y = centerY + amplitude + compressedData[i] * amplitude;
@@ -167,7 +203,7 @@ const InteractiveDemo: React.FC = () => {
     p.textSize(14);
     p.text('Original Audio (WAV)', 20, 40);
     
-    if (compressedData) {
+    if (compressedDataRef.current) {
       p.fill(239, 68, 68);
       p.text('Compressed Audio (Opus)', 20, p.height - 20);
     }
@@ -176,7 +212,7 @@ const InteractiveDemo: React.FC = () => {
     p.textAlign(p.CENTER);
     p.textSize(12);
     p.fill(100);
-    if (compressedData) {
+    if (compressedDataRef.current) {
       p.text('Blue: Original WAV audio with full quality', p.width/2, 60);
       p.text('Red: Compressed Opus audio with reduced size', p.width/2, 75);
     } else {
@@ -202,15 +238,10 @@ const InteractiveDemo: React.FC = () => {
       setIsPlayingWav(false);
       setIsPlayingOpus(false);
       
-      // Initialize Opus encoder
-      try {
-        opusEncoderRef.current = new OpusEncoder(config);
-        await opusEncoderRef.current.initialize(config);
-        await opusEncoderRef.current.startRecording();
-      } catch (opusError) {
-        console.warn('Opus encoder failed, falling back to basic recording:', opusError);
-        opusEncoderRef.current = null;
-      }
+      // Initialize Opus encoder - no fallback, fail if WASM doesn't work
+      opusEncoderRef.current = new OpusEncoder(config);
+      await opusEncoderRef.current.initialize(config);
+      await opusEncoderRef.current.startRecording();
       
       // Set up visualization with echo cancellation
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -237,65 +268,47 @@ const InteractiveDemo: React.FC = () => {
       setRecordingComplete(false);
       recordingStartTimeRef.current = Date.now();
     } catch (error) {
-      console.error('Error starting recording:', error);
+      console.error('Error starting Opus WASM recording:', error);
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
           alert('Microphone access denied. Please allow microphone permissions in your browser and try again.');
         } else if (error.name === 'NotFoundError') {
           alert('No microphone found. Please connect a microphone and try again.');
+        } else if (error.message.includes('Opus WASM')) {
+          alert(`Opus WASM Error: ${error.message}\n\nPlease ensure the Opus WASM files are properly loaded.`);
         } else {
-          alert(`Recording error: ${error.message}`);
+          alert(`Opus recording error: ${error.message}`);
         }
       } else {
-        alert('Unable to start recording. Please check microphone permissions and try again.');
+        alert('Unable to start Opus WASM recording. Please check your browser compatibility and try again.');
+      }
+      
+      // Clean up on error
+      setIsRecording(false);
+      if (opusEncoderRef.current) {
+        opusEncoderRef.current.destroy();
+        opusEncoderRef.current = null;
       }
     }
   };
 
   const stopRecording = async () => {
     try {
-      // Stop Opus recording and get real data
-      if (opusEncoderRef.current) {
-        const result = await opusEncoderRef.current.stopRecording();
-        
-        setAudioData(result.rawAudio);
-        setCompressedData(result.rawAudio); // Use raw audio for visualization, but we'll calculate real compressed size
-        setRecordingDuration(result.duration);
-        
-        // Store compressed data for download
-        const compressedBlob = new Blob([result.compressedAudio], { type: 'audio/ogg; codecs=opus' });
-        // Store the actual compressed size
-        const compressedSizeKB = result.compressedAudio.length / 1024; // Convert to KB
-        console.log('Compressed audio size:', result.compressedAudio.length, 'bytes =', compressedSizeKB, 'KB');
-        setActualCompressedSize(compressedSizeKB);
-      } else {
-        // Fallback: generate simulated data for demonstration
-        const duration = recordingStartTimeRef.current 
-          ? (Date.now() - recordingStartTimeRef.current) / 1000 
-          : 3;
-        
-        setRecordingDuration(duration);
-        
-        // Generate simulated audio data
-        const sampleRate = 48000;
-        const samples = sampleRate * duration;
-        const originalData = new Float32Array(samples);
-        
-        for (let i = 0; i < samples; i++) {
-          const time = i / sampleRate;
-          originalData[i] = Math.sin(2 * Math.PI * 440 * time) * 0.4 + 
-                           Math.sin(2 * Math.PI * 880 * time) * 0.3 +
-                           (Math.random() - 0.5) * 0.05;
-        }
-        
-        setAudioData(originalData);
-        setCompressedData(originalData);
-        
-        // Calculate theoretical compressed size
-        const fallbackCompressedSize = (config.bitrate * duration) / 8;
-        console.log('Fallback compressed size:', fallbackCompressedSize, 'KB');
-        setActualCompressedSize(fallbackCompressedSize);
+      if (!opusEncoderRef.current) {
+        throw new Error('Opus encoder not available');
       }
+
+      // Stop Opus recording and get real data
+      const result = await opusEncoderRef.current.stopRecording();
+      
+      setAudioData(result.rawAudio);
+      setCompressedData(result.rawAudio); // Use raw audio for visualization, but we'll calculate real compressed size
+      setRecordingDuration(result.duration);
+      
+      // Store the actual compressed size
+      const compressedSizeKB = result.compressedAudio.length / 1024; // Convert to KB
+      console.log('Real Opus compressed audio size:', result.compressedAudio.length, 'bytes =', compressedSizeKB, 'KB');
+      setActualCompressedSize(compressedSizeKB);
       
       // Clean up visualization
       if (mediaStreamRef.current) {
@@ -313,14 +326,20 @@ const InteractiveDemo: React.FC = () => {
       setRecordingComplete(true);
       
       // Clean up Opus encoder
+      opusEncoderRef.current.destroy();
+      opusEncoderRef.current = null;
+      
+    } catch (error) {
+      console.error('Error stopping Opus WASM recording:', error);
+      alert(`Opus WASM recording failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Reset state on error
+      setIsRecording(false);
+      setRecordingComplete(false);
       if (opusEncoderRef.current) {
         opusEncoderRef.current.destroy();
         opusEncoderRef.current = null;
       }
-      
-    } catch (error) {
-      console.error('Error stopping recording:', error);
-      alert('Error stopping recording. Please try again.');
     }
   };
 
@@ -618,7 +637,7 @@ const InteractiveDemo: React.FC = () => {
                         {compressedDataSize.toFixed(1)} KB
                       </div>
                       <div className="text-xs text-red-600 mt-1">
-                        Real Opus encoding at {config.bitrate} kbps
+                        Real Opus WASM encoding at {config.bitrate} kbps
                       </div>
                     </div>
                     
