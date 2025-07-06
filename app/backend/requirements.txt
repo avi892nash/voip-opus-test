@@ -1,0 +1,10 @@
+# VoIP System Dependencies
+websockets==12.0
+aiofiles==24.1.0
+
+# Audio processing (optional - if you want to use the original Python audio scripts)
+# Uncomment the following lines if you plan to use microphone.py or other audio scripts
+# PyAudio==0.2.11
+
+# Development tools (optional)
+# pylint==2.3.1
