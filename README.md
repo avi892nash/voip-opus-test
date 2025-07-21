@@ -1,3 +1,4 @@
+![Project Logo](logo.png)
 # VoIP System with Opus Codec
 
 A complete peer-to-peer voice communication system with user authentication, WebRTC, and the Opus audio codec.
