@@ -1,0 +1,18 @@
+#!/bin/sh
+# Maintainer script — runs before the .deb is removed.
+# Stop + disable the service. Leave /var/lib/voip-opus (the SQLite DB) and
+# /etc/voip-opus.env alone; the user can remove them manually if they want to
+# fully purge.
+
+set -e
+
+if command -v systemctl >/dev/null 2>&1; then
+    if systemctl is-active --quiet voip-opus.service; then
+        systemctl stop voip-opus.service || true
+    fi
+    if systemctl is-enabled --quiet voip-opus.service 2>/dev/null; then
+        systemctl disable voip-opus.service || true
+    fi
+fi
+
+exit 0

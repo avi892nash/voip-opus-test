@@ -1,0 +1,27 @@
+{
+  "name": "voip-opus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted Opus voice calls (1:1 + group rooms) over WebRTC, served as an installable PWA.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avi892nash/voip-opus-test.git"
+  },
+  "license": "MIT",
+  "scripts": {
+    "install:all": "npm install --prefix web",
+    "build": "npm run build --prefix web",
+    "lint": "npm run lint --prefix web",
+    "typecheck": "npm run --prefix web -- exec tsc -- --noEmit",
+    "test:server": "python3 -m pytest server/tests/",
+    "build-deb": "scripts/build-deb.sh"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "semantic-release": "^24.2.0"
+  }
+}

@@ -1,0 +1,284 @@
+name: CI / CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.12'
+
+# Pipeline shape (PR):
+#
+#   commitlint
+#   version ──► lint-web ──► build-web ─────┐
+#           ├─► test-server                  │
+#           └─► build-deb ──► test-deb ──────┘
+#
+# Pipeline shape (push to main, adds release):
+#
+#   version ──► lint-web ──► build-web ──────────┐
+#           ├─► test-server                       │
+#           └─► build-deb ──► test-deb ───────────┴──► release
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # PR commit-message lint (conventional commits).
+  # ---------------------------------------------------------------------------
+  commitlint:
+    name: Commitlint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v6
+
+  # ---------------------------------------------------------------------------
+  # Resolve the version: root package.json + short SHA suffix on dev builds.
+  # ---------------------------------------------------------------------------
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      base: ${{ steps.v.outputs.BASE }}
+      full: ${{ steps.v.outputs.FULL }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: |
+          BASE=$(node -p "require('./package.json').version")
+          SHA=$(git rev-parse --short HEAD)
+          echo "BASE=${BASE}"        >> "$GITHUB_OUTPUT"
+          echo "FULL=${BASE}+${SHA}" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # Frontend lint + typecheck (tsc) + production build.
+  # ---------------------------------------------------------------------------
+  build-web:
+    name: '[web] Lint + typecheck + build'
+    runs-on: ubuntu-latest
+    needs: version
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (tsc + vite)
+        run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Backend pytest (auth + signaling + rooms).
+  # ---------------------------------------------------------------------------
+  test-server:
+    name: '[server] pytest'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: server/requirements.txt
+
+      - name: Install
+        run: pip install -r server/requirements.txt
+
+      - name: pytest
+        run: python -m pytest server/tests/ -v
+
+  # ---------------------------------------------------------------------------
+  # Build voip-opus_X.Y.Z+sha_all.deb (frontend + backend in one package).
+  # ---------------------------------------------------------------------------
+  build-deb:
+    name: '[deb] Build'
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install fpm
+        run: gem install --no-document fpm
+
+      - name: Install web deps
+        working-directory: web
+        run: npm ci
+
+      - name: Build .deb
+        env:
+          VERSION: ${{ needs.version.outputs.full }}
+        run: scripts/build-deb.sh
+
+      - name: Verify .deb exists
+        run: ls -lh dist/voip-opus_*_all.deb
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voip-opus-deb
+          path: dist/voip-opus_*_all.deb
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Install the built .deb and smoke-test the running service.
+  # Catches packaging bugs (missing files, broken postinst, wrong systemd
+  # unit) BEFORE we tag a release.
+  # ---------------------------------------------------------------------------
+  test-deb:
+    name: '[deb] Install + smoke-test'
+    runs-on: ubuntu-latest
+    needs: build-deb
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: voip-opus-deb
+          path: .
+
+      - name: Install
+        run: sudo apt-get install -y ./voip-opus_*_all.deb
+
+      - name: Verify package registered
+        run: dpkg -s voip-opus | grep -E '^(Status|Version):'
+
+      - name: Verify files landed
+        run: |
+          for f in \
+            /opt/voip-opus/server/main.py \
+            /opt/voip-opus/web-dist/index.html \
+            /opt/voip-opus/requirements.txt \
+            /lib/systemd/system/voip-opus.service \
+            /etc/voip-opus.env; do
+            test -e "$f" || { echo "FAIL: $f missing"; exit 1; }
+          done
+          echo "PASS: all expected files present"
+
+      - name: Wait for service
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -sf http://127.0.0.1:8000/api/health >/dev/null; then
+              echo "Service responding"; exit 0
+            fi
+            sleep 2
+          done
+          echo "FAIL: service didn't respond after 20s"
+          journalctl -u voip-opus -n 100 --no-pager
+          exit 1
+
+      - name: Smoke test (signup → login → /me → SPA root)
+        run: |
+          fail() { echo "FAIL: $*"; exit 1; }
+          API=http://127.0.0.1:8000
+
+          # 1. health
+          [ "$(curl -s -o /dev/null -w '%{http_code}' $API/api/health)" = "200" ] \
+            || fail "/api/health"
+
+          # 2. signup → returns JWT.
+          # Username must be >= 3 chars per server/models.py validation.
+          SIGNUP_USER="citest"
+          SIGNUP_EMAIL="citest@example.com"
+          SIGNUP_PW="ci-password-123"
+          STATUS=$(curl -s -o /tmp/body -w '%{http_code}' -X POST $API/api/auth/signup \
+            -H 'Content-Type: application/json' \
+            -d "{\"username\":\"$SIGNUP_USER\",\"email\":\"$SIGNUP_EMAIL\",\"password\":\"$SIGNUP_PW\"}")
+          if [ "$STATUS" != "201" ]; then
+            echo "signup returned HTTP $STATUS"
+            cat /tmp/body
+            fail "signup"
+          fi
+          TOKEN=$(python3 -c "import json;print(json.load(open('/tmp/body'))['access_token'])")
+          [ -n "$TOKEN" ] || fail "signup returned no token"
+
+          # 3. /me with the token
+          STATUS=$(curl -s -o /tmp/body -w '%{http_code}' \
+            -H "Authorization: Bearer $TOKEN" $API/api/auth/me)
+          if [ "$STATUS" != "200" ]; then
+            echo "/me returned HTTP $STATUS"
+            cat /tmp/body
+            fail "/api/auth/me"
+          fi
+          grep -q "\"username\":\"$SIGNUP_USER\"" /tmp/body \
+            || fail "username mismatch ($(cat /tmp/body))"
+
+          # 4. SPA root serves index.html (the .deb's web-dist must be present)
+          curl -sf $API/ | grep -q '<div id="root"' \
+            || fail "SPA root did not serve index.html"
+
+          echo "PASS: signup, /me, SPA root all OK"
+
+      - name: Verify systemd unit
+        run: |
+          systemctl is-active voip-opus.service \
+            || { journalctl -u voip-opus -n 50 --no-pager; exit 1; }
+          echo "PASS: voip-opus.service active"
+
+  # ---------------------------------------------------------------------------
+  # Release — semantic-release computes the next version from conventional
+  # commits since the last tag, bumps package.json + web/package.json, writes
+  # CHANGELOG.md, commits + tags, creates a GitHub Release with the .deb
+  # attached. Only runs on push to main, only after every test passes.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [version, build-web, test-server, test-deb]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: voip-opus-deb
+          path: dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install semantic-release tooling
+        run: npm ci --no-audit --no-fund
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release

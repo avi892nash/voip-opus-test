@@ -1,0 +1,29 @@
+#!/bin/sh
+# Maintainer script — runs after the .deb is removed.
+# On `apt remove` we keep the venv + data so re-installing is fast.
+# On `apt purge` we tear down everything including the user, data dir,
+# venv, and env file.
+
+set -e
+
+case "$1" in
+    purge)
+        rm -rf /opt/voip-opus/.venv
+        rm -rf /var/lib/voip-opus
+        rm -f /etc/voip-opus.env
+        if getent passwd voip-opus >/dev/null 2>&1; then
+            deluser --quiet --system voip-opus || true
+        fi
+        if getent group voip-opus >/dev/null 2>&1; then
+            delgroup --quiet --system voip-opus || true
+        fi
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl daemon-reload || true
+        fi
+        ;;
+    remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Nothing extra to do; package files are removed by dpkg.
+        ;;
+esac
+
+exit 0
