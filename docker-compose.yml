@@ -1,0 +1,61 @@
+# Local development stack — LOCAL DEV ONLY, not for production.
+#
+#   docker compose up --build
+#
+# Then open http://localhost:5174 (web) — it proxies /api and /ws to the server on :8000.
+#
+# For real deploys, see docs/DEPLOY.md. The three supported paths are:
+#   - Path A: managed services (Vercel + Fly/Render) — no Docker needed
+#   - Path B: single rented VM with this compose file behind Caddy
+#   - Path C: home server (Pi) + S3 frontend — uses scripts/ instead of Docker
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      PORT: "8000"
+      JWT_SECRET: "${JWT_SECRET:-dev-insecure-change-me}"
+      JWT_EXPIRES_DAYS: "7"
+      DB_PATH: "/data/voip.db"
+      CORS_ORIGINS: "http://localhost:5174,http://127.0.0.1:5174"
+    volumes:
+      - voip-data:/data
+    ports:
+      - "8000:8000"
+
+  web:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./web:/app
+    command: sh -c "npm install --no-audit --no-fund && npm run dev -- --host"
+    environment:
+      # The Vite dev-server proxy uses this — read inside the container, so
+      # the Docker service name `server` resolves correctly. NOT baked into
+      # the browser bundle (that would break the user's browser, which can't
+      # resolve `server`).
+      VITE_PROXY_TARGET: "http://server:8000"
+      # VITE_API_URL / VITE_WS_URL are deliberately UNSET so the browser
+      # bundle uses relative URLs; those flow through the proxy above.
+    ports:
+      - "5174:5174"
+    depends_on:
+      - server
+
+  # Optional TURN server for testing across NATs. Off by default.
+  # Uncomment when you need it; configure realm + credentials before exposing.
+  # coturn:
+  #   image: coturn/coturn:latest
+  #   network_mode: host
+  #   command: >
+  #     -n
+  #     --listening-port=3478
+  #     --realm=local
+  #     --user=demo:demo
+  #     --fingerprint
+  #     --lt-cred-mech
+
+volumes:
+  voip-data:

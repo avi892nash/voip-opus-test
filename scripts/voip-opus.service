@@ -1,0 +1,56 @@
+# systemd unit for the voip-opus single-process server.
+#
+# This unit is installed by the .deb at /lib/systemd/system/voip-opus.service.
+# The deb postinst creates the dedicated user, the virtualenv, and the env
+# file at the paths below.
+#
+# Status / logs:
+#   systemctl status voip-opus
+#   journalctl -u voip-opus -f
+
+[Unit]
+Description=VoIP + Opus signaling backend + PWA (FastAPI)
+Documentation=https://github.com/avi892nash/voip-opus-test
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=voip-opus
+Group=voip-opus
+WorkingDirectory=/opt/voip-opus
+EnvironmentFile=/etc/voip-opus.env
+Environment="WEB_DIST=/opt/voip-opus/web-dist"
+
+# Bind to localhost only — Cloudflare Tunnel (or any reverse proxy) terminates
+# TLS and reaches us over loopback. Never expose 8000 directly on the LAN
+# (browsers would refuse mic access without HTTPS anyway).
+ExecStart=/opt/voip-opus/.venv/bin/uvicorn server.main:app \
+  --host 127.0.0.1 \
+  --port 8000 \
+  --proxy-headers \
+  --forwarded-allow-ips=127.0.0.1
+
+Restart=always
+RestartSec=3
+
+# Sensible sandboxing for an internet-facing service.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/voip-opus
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+# Generous limits — signaling is light, but allow headroom for many WS connections.
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,80 @@
+#!/bin/sh
+# Maintainer script — runs after the .deb is unpacked.
+#
+# Responsibilities:
+#   1. Create the `voip-opus` system user / group.
+#   2. Build the Python virtualenv at /opt/voip-opus/.venv and install pip
+#      dependencies into it.
+#   3. Generate a JWT secret on first install (left alone on upgrade).
+#   4. Create /var/lib/voip-opus for the SQLite DB.
+#   5. Reload systemd, enable + start the voip-opus service.
+
+set -e
+
+INSTALL_DIR=/opt/voip-opus
+DATA_DIR=/var/lib/voip-opus
+ENV_FILE=/etc/voip-opus.env
+USER=voip-opus
+GROUP=voip-opus
+
+# --- User / group ---
+if ! getent group "$GROUP" >/dev/null 2>&1; then
+    addgroup --system "$GROUP"
+fi
+if ! getent passwd "$USER" >/dev/null 2>&1; then
+    adduser --system --ingroup "$GROUP" \
+        --home "$INSTALL_DIR" --shell /usr/sbin/nologin \
+        --no-create-home "$USER"
+fi
+
+# --- Virtualenv ---
+# We deliberately create the venv at install time (not at .deb-build time)
+# so wheels match the target architecture (Pi vs amd64 etc.) and so the
+# package itself is `Architecture: all`.
+if [ ! -d "$INSTALL_DIR/.venv" ]; then
+    echo "Creating virtualenv at $INSTALL_DIR/.venv ..."
+    python3 -m venv "$INSTALL_DIR/.venv"
+fi
+echo "Installing Python dependencies into $INSTALL_DIR/.venv ..."
+"$INSTALL_DIR/.venv/bin/pip" install --quiet --upgrade pip
+"$INSTALL_DIR/.venv/bin/pip" install --quiet -r "$INSTALL_DIR/requirements.txt"
+
+# --- Data dir ---
+mkdir -p "$DATA_DIR"
+chown -R "$USER:$GROUP" "$DATA_DIR" "$INSTALL_DIR"
+
+# --- JWT secret — generate once, never overwrite ---
+# The default env file ships with a placeholder so the service won't start
+# until we replace it with something real. On upgrades, the file is treated
+# as a conffile and dpkg won't touch it.
+if grep -q '^JWT_SECRET=REPLACE_ON_INSTALL$' "$ENV_FILE" 2>/dev/null; then
+    NEW_SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+    sed -i "s|^JWT_SECRET=REPLACE_ON_INSTALL\$|JWT_SECRET=${NEW_SECRET}|" "$ENV_FILE"
+    echo "Generated JWT_SECRET in $ENV_FILE"
+fi
+chmod 640 "$ENV_FILE"
+chown root:"$GROUP" "$ENV_FILE"
+
+# --- systemd ---
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload
+    # Use `enable --now` on first install; restart on upgrade.
+    if systemctl is-enabled voip-opus.service >/dev/null 2>&1; then
+        systemctl restart voip-opus.service || true
+    else
+        systemctl enable --now voip-opus.service || true
+    fi
+fi
+
+echo ""
+echo "voip-opus installed."
+echo "  - Service:    systemctl status voip-opus"
+echo "  - Logs:       journalctl -u voip-opus -f"
+echo "  - Env file:   $ENV_FILE  (edit then 'systemctl restart voip-opus')"
+echo "  - Data dir:   $DATA_DIR"
+echo ""
+echo "The server listens on 127.0.0.1:8000. Point Cloudflare Tunnel"
+echo "(or any reverse proxy) at that address to expose it on a public URL."
+echo ""
+
+exit 0

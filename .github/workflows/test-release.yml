@@ -1,0 +1,66 @@
+name: Test Published Release
+
+# Re-installs the .deb attached to a published GitHub Release on a fresh
+# runner and smoke-tests it end-to-end. Catches "the .deb assembled in CI
+# worked, but the one we shipped to the world is broken" regressions.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  test-published-deb:
+    name: 'Install + smoke-test published .deb'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download .deb from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "${{ github.event.release.tag_name }}" \
+            --repo "${{ github.repository }}" \
+            --pattern 'voip-opus_*_all.deb' \
+            --dir .
+
+      - name: Install
+        run: sudo apt-get install -y ./voip-opus_*_all.deb
+
+      - name: Verify package
+        run: dpkg -s voip-opus | grep -E '^(Status|Version):'
+
+      - name: Wait for service
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -sf http://127.0.0.1:8000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          journalctl -u voip-opus -n 100 --no-pager
+          exit 1
+
+      - name: Smoke test
+        run: |
+          fail() { echo "FAIL: $*"; exit 1; }
+          API=http://127.0.0.1:8000
+
+          [ "$(curl -s -o /dev/null -w '%{http_code}' $API/api/health)" = "200" ] \
+            || fail "/api/health"
+
+          STATUS=$(curl -s -o /tmp/body -w '%{http_code}' -X POST $API/api/auth/signup \
+            -H 'Content-Type: application/json' \
+            -d '{"username":"release","email":"r@example.com","password":"rel-password-123"}')
+          if [ "$STATUS" != "201" ]; then
+            echo "signup returned HTTP $STATUS"; cat /tmp/body
+            fail "signup"
+          fi
+          TOKEN=$(python3 -c "import json;print(json.load(open('/tmp/body'))['access_token'])")
+          [ -n "$TOKEN" ] || fail "no token"
+
+          curl -sf -H "Authorization: Bearer $TOKEN" $API/api/auth/me \
+            | grep -q '"username":"release"' || fail "/me"
+
+          curl -sf $API/ | grep -q '<div id="root"' \
+            || fail "SPA root"
+
+          echo "PASS: released .deb installs and serves traffic"

@@ -1,2 +1,25 @@
-venv
-.vscode
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+.claude/
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Frontend
+web/node_modules/
+web/dist/
+web/.vite/
+
+# Local state
+.env
+.env.local
+data/
+*.db
+*.db-shm
+*.db-wal
