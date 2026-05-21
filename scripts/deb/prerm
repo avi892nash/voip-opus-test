@@ -7,12 +7,15 @@
 set -e
 
 if command -v systemctl >/dev/null 2>&1; then
-    if systemctl is-active --quiet voip-opus.service; then
-        systemctl stop voip-opus.service || true
-    fi
-    if systemctl is-enabled --quiet voip-opus.service 2>/dev/null; then
-        systemctl disable voip-opus.service || true
-    fi
+    # Stop + disable both units that the package installs.
+    for unit in voip-opus.service voip-opus-update.timer voip-opus-update.service; do
+        if systemctl is-active --quiet "$unit"; then
+            systemctl stop "$unit" || true
+        fi
+        if systemctl is-enabled --quiet "$unit" 2>/dev/null; then
+            systemctl disable "$unit" || true
+        fi
+    done
 fi
 
 exit 0

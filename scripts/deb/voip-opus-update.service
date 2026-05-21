@@ -1,0 +1,18 @@
+# systemd unit for the voip-opus auto-updater (a oneshot triggered by
+# voip-opus-update.timer). Polls GitHub for the latest release, downloads the
+# .deb if it's newer than what's installed, and runs `apt install`.
+#
+# Manually force a check:  systemctl start voip-opus-update.service
+# Disable auto-updates:    systemctl disable --now voip-opus-update.timer
+
+[Unit]
+Description=Check for + apply voip-opus updates from GitHub releases
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/voip-opus-update
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=voip-opus-update

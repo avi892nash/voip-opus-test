@@ -1,0 +1,113 @@
+#!/bin/bash
+#
+# voip-opus auto-updater.
+#
+# Polls https://api.github.com/repos/avi892nash/voip-opus-test/releases/latest,
+# compares the tag against the locally-installed one, and if a newer .deb is
+# available, downloads it and runs `apt install`. Triggered every 30 minutes
+# by /lib/systemd/system/voip-opus-update.timer.
+#
+# Designed to be safe to run repeatedly:
+#   - Skips if dpkg/apt is already locked by another process.
+#   - Skips if GitHub returns 404 (no releases yet) or any non-200 — never
+#     tears down a working install on transient network errors.
+#   - Persists the last-installed tag at $INSTALLED_TAG_FILE so the comparison
+#     is cheap (no need to parse Debian's version-comparison rules).
+#
+# Logs go to journald under the 'voip-opus-update' tag — view with:
+#   journalctl -t voip-opus-update -f
+#
+# To disable auto-updates:    systemctl disable --now voip-opus-update.timer
+# To force-check now:         systemctl start voip-opus-update.service
+
+set -e
+
+REPO="avi892nash/voip-opus-test"
+INSTALLED_TAG_FILE="/var/lib/voip-opus/installed-tag"
+
+log()  { printf '[voip-opus-update] %s\n' "$*"; }
+fail() { printf '[voip-opus-update] ERROR: %s\n' "$*" >&2; exit 1; }
+
+# Don't fight an apt/dpkg that's already running.
+if lsof /var/lib/dpkg/lock-frontend &>/dev/null 2>&1; then
+  log "dpkg is locked by another process — will retry on next tick"
+  exit 0
+fi
+
+API_URL="https://api.github.com/repos/${REPO}/releases/latest"
+
+HTTP_CODE=$(curl -o /dev/null -sw "%{http_code}" \
+  -H "Accept: application/vnd.github+json" \
+  --max-time 30 \
+  "$API_URL" 2>/dev/null || echo "000")
+
+case "$HTTP_CODE" in
+  200) : ;;
+  404) log "No releases published yet, nothing to do"; exit 0 ;;
+  *)   log "GitHub API returned HTTP $HTTP_CODE — skipping (will retry)"; exit 0 ;;
+esac
+
+RELEASE_JSON=$(curl -fsSL \
+  -H "Accept: application/vnd.github+json" \
+  --max-time 30 \
+  "$API_URL" 2>/dev/null) || {
+  log "GitHub API unreachable, will retry next tick"
+  exit 0
+}
+
+# Parse the JSON via python3 (guaranteed available — the FastAPI runtime
+# depends on it). Extract the release tag plus the URL of the first asset
+# whose filename matches voip-opus_*.deb.
+TAG=""
+ASSET_URL=""
+{ read -r TAG; read -r ASSET_URL; } < <(printf '%s' "$RELEASE_JSON" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(d.get('tag_name') or '')
+for a in d.get('assets', []):
+    n = a.get('name', '')
+    if n.startswith('voip-opus_') and n.endswith('.deb'):
+        print(a.get('browser_download_url', ''))
+        break
+")
+
+[ -n "$TAG" ] || fail "release has no tag_name"
+[ -n "$ASSET_URL" ] || fail "no voip-opus_*.deb asset on release $TAG"
+
+LOCAL_TAG=$(cat "$INSTALLED_TAG_FILE" 2>/dev/null || echo "")
+
+# First run after a fresh `apt install` — no installed-tag yet.
+# We can't compare the dpkg package version to a GitHub tag reliably (the
+# .deb's internal version is X.Y.Z+sha; the release tag is whatever
+# semantic-release chose). Adopt the current tag silently rather than
+# trigger a redundant reinstall of the same code on first auto-update tick.
+if [ -z "$LOCAL_TAG" ]; then
+  log "First run after manual install; adopting current release tag $TAG"
+  mkdir -p "$(dirname "$INSTALLED_TAG_FILE")"
+  echo "$TAG" > "$INSTALLED_TAG_FILE"
+  exit 0
+fi
+
+if [ "$LOCAL_TAG" = "$TAG" ]; then
+  log "Up to date ($TAG)"
+  exit 0
+fi
+
+log "Update available: $LOCAL_TAG → $TAG"
+
+TMPFILE=$(mktemp /tmp/voip-opus-XXXXXX.deb)
+trap 'rm -f "$TMPFILE"' EXIT
+
+log "Downloading $ASSET_URL"
+curl -fsSL --max-time 300 "$ASSET_URL" -o "$TMPFILE" \
+  || fail "download failed"
+
+log "Installing $TAG..."
+DEBIAN_FRONTEND=noninteractive apt-get install -y "$TMPFILE" \
+  || fail "apt install failed (see apt output above)"
+
+# Persist the new tag only after apt install succeeds.
+mkdir -p "$(dirname "$INSTALLED_TAG_FILE")"
+echo "$TAG" > "$INSTALLED_TAG_FILE"
+
+log "Successfully updated to $TAG"

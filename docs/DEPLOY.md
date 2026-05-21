@@ -194,11 +194,45 @@ restart voip-opus`.
 Open `https://voip.devshram.com` — same origin serves the PWA, the API, and
 the WebSocket. The browser sees HTTPS, mic permission works.
 
-### 4. Upgrades
+### 4. Upgrades — automatic by default
 
-Build a new .deb (bump version in `web/package.json` first), copy it to the
-Pi, run `sudo apt install /tmp/voip-opus_X.Y.Z_all.deb`. The conffile
-(`/etc/voip-opus.env`) is preserved; your JWT_SECRET survives.
+The .deb ships a small auto-updater. After install you'll have:
+
+- `/usr/bin/voip-opus-update` — polls GitHub for the latest release.
+- `voip-opus-update.service` — systemd oneshot that runs that script.
+- `voip-opus-update.timer` — fires the service every **30 minutes**
+  (5 minutes after boot, then every 30 minutes with up to 5 minutes of
+  jitter so a fleet of Pis doesn't all hit the API at the same second).
+
+When a new GitHub release is published:
+
+1. Within ~30 minutes, the timer fires.
+2. The script reads `/var/lib/voip-opus/installed-tag`, compares it to
+   the tag on `releases/latest`, and if they differ, downloads the
+   attached `voip-opus_*.deb` and runs `apt install`.
+3. `apt install` runs `postinst` again — restarts `voip-opus.service`,
+   re-runs the venv install (picks up new Python deps), preserves
+   `/etc/voip-opus.env` (conffile).
+
+Manual control:
+
+```bash
+# Force a check right now (helpful for testing)
+sudo systemctl start voip-opus-update.service
+sudo journalctl -t voip-opus-update -f
+
+# See when it'll fire next
+systemctl list-timers voip-opus-update.timer
+
+# Disable auto-update (revert to manual upgrades)
+sudo systemctl disable --now voip-opus-update.timer
+```
+
+If you'd rather upgrade manually, disable the timer and either
+`scp + apt install` a hand-built `.deb`, or
+`gh release download vX.Y.Z -p '*.deb' -R avi892nash/voip-opus-test`
+then `sudo apt install ./voip-opus_*.deb`. The conffile preserves your
+JWT_SECRET across upgrades.
 
 ### 5. Backups (3-2-1 in three small steps)
 
