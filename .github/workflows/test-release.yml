@@ -28,6 +28,18 @@ jobs:
       - name: Verify package
         run: dpkg -s voip-opus | grep -E '^(Status|Version):'
 
+      - name: Verify auto-update artefacts shipped
+        run: |
+          for f in /usr/bin/voip-opus-update \
+                   /lib/systemd/system/voip-opus-update.service \
+                   /lib/systemd/system/voip-opus-update.timer; do
+            test -e "$f" || { echo "FAIL: $f missing"; exit 1; }
+          done
+          test -x /usr/bin/voip-opus-update
+          systemctl list-timers voip-opus-update.timer | grep -q voip-opus-update \
+            || { echo "FAIL: timer not active"; systemctl status voip-opus-update.timer || true; exit 1; }
+          echo "PASS: auto-update timer is wired up"
+
       - name: Wait for service
         run: |
           for i in 1 2 3 4 5 6 7 8 9 10; do

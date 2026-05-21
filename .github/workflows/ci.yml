@@ -179,9 +179,13 @@ jobs:
             /opt/voip-opus/web-dist/index.html \
             /opt/voip-opus/requirements.txt \
             /lib/systemd/system/voip-opus.service \
+            /lib/systemd/system/voip-opus-update.service \
+            /lib/systemd/system/voip-opus-update.timer \
+            /usr/bin/voip-opus-update \
             /etc/voip-opus.env; do
             test -e "$f" || { echo "FAIL: $f missing"; exit 1; }
           done
+          test -x /usr/bin/voip-opus-update || { echo "FAIL: voip-opus-update not executable"; exit 1; }
           echo "PASS: all expected files present"
 
       - name: Wait for service

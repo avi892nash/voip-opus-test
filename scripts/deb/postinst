@@ -6,8 +6,11 @@
 #   2. Build the Python virtualenv at /opt/voip-opus/.venv and install pip
 #      dependencies into it.
 #   3. Generate a JWT secret on first install (left alone on upgrade).
-#   4. Create /var/lib/voip-opus for the SQLite DB.
-#   5. Reload systemd, enable + start the voip-opus service.
+#   4. Create /var/lib/voip-opus for the SQLite DB + auto-update state file
+#      (created lazily by voip-opus-update on first run).
+#   5. Reload systemd; enable + start voip-opus.service.
+#   6. Enable + start voip-opus-update.timer so the box auto-upgrades on
+#      every future GitHub release.
 
 set -e
 
@@ -64,17 +67,25 @@ if command -v systemctl >/dev/null 2>&1; then
     else
         systemctl enable --now voip-opus.service || true
     fi
+    # Auto-update timer. Same idempotent enable--now pattern.
+    if ! systemctl is-enabled voip-opus-update.timer >/dev/null 2>&1; then
+        systemctl enable --now voip-opus-update.timer || true
+    fi
 fi
 
 echo ""
 echo "voip-opus installed."
-echo "  - Service:    systemctl status voip-opus"
-echo "  - Logs:       journalctl -u voip-opus -f"
-echo "  - Env file:   $ENV_FILE  (edit then 'systemctl restart voip-opus')"
-echo "  - Data dir:   $DATA_DIR"
+echo "  - Service:        systemctl status voip-opus"
+echo "  - Auto-update:    systemctl list-timers voip-opus-update.timer"
+echo "  - Logs (server):  journalctl -u voip-opus -f"
+echo "  - Logs (updater): journalctl -t voip-opus-update -f"
+echo "  - Env file:       $ENV_FILE  (edit then 'systemctl restart voip-opus')"
+echo "  - Data dir:       $DATA_DIR"
 echo ""
 echo "The server listens on 127.0.0.1:8000. Point Cloudflare Tunnel"
 echo "(or any reverse proxy) at that address to expose it on a public URL."
+echo "Auto-update polls GitHub every 30 min; disable with:"
+echo "  systemctl disable --now voip-opus-update.timer"
 echo ""
 
 exit 0

@@ -77,9 +77,15 @@ rm -rf "$STAGE/opt/voip-opus/server/__pycache__" \
 install -d -m 755 "$STAGE/opt/voip-opus/web-dist"
 cp -r web/dist/. "$STAGE/opt/voip-opus/web-dist/"
 
-# /lib/systemd/system/voip-opus.service
+# /lib/systemd/system/{voip-opus,voip-opus-update}.{service,timer}
 install -d -m 755 "$STAGE/lib/systemd/system"
-install -m 644 scripts/voip-opus.service "$STAGE/lib/systemd/system/voip-opus.service"
+install -m 644 scripts/voip-opus.service              "$STAGE/lib/systemd/system/voip-opus.service"
+install -m 644 scripts/deb/voip-opus-update.service   "$STAGE/lib/systemd/system/voip-opus-update.service"
+install -m 644 scripts/deb/voip-opus-update.timer     "$STAGE/lib/systemd/system/voip-opus-update.timer"
+
+# /usr/bin/voip-opus-update — the actual auto-update script.
+install -d -m 755 "$STAGE/usr/bin"
+install -m 755 scripts/deb/voip-opus-update "$STAGE/usr/bin/voip-opus-update"
 
 # /etc/voip-opus.env  (dpkg conffile)
 install -d -m 755 "$STAGE/etc"
@@ -105,6 +111,8 @@ fpm \
     --depends "python3-pip" \
     --depends "adduser" \
     --depends "systemd" \
+    --depends "curl" \
+    --depends "lsof" \
     --after-install scripts/deb/postinst \
     --before-remove scripts/deb/prerm \
     --after-remove  scripts/deb/postrm \
