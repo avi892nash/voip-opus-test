@@ -1,0 +1,84 @@
+# Dependabot configuration.
+#
+# Goals:
+#   - Use conventional commit prefixes (chore(deps)) so commits pass the
+#     commitlint job and semantic-release classifies them as no-op patch
+#     changes rather than crashing on unknown types.
+#   - Group related packages (vite + its plugins, react + react-dom + types)
+#     so one ecosystem upgrade arrives as one PR, not three.
+#   - Cap open PRs per ecosystem so the queue stays reviewable.
+#
+# Reference: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Frontend (Vite + React) -------------------------------------------------
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: scope
+    groups:
+      # Vite, its plugins, and esbuild ship together — when one moves we
+      # want them all in one PR (peer-dep constraints often force this).
+      vite:
+        patterns:
+          - vite
+          - "@vitejs/*"
+          - vite-plugin-*
+          - esbuild
+      # React + react-dom + their @types travel as a unit.
+      react:
+        patterns:
+          - react
+          - react-dom
+          - react-router-dom
+          - "@types/react"
+          - "@types/react-dom"
+      # Tailwind + PostCSS + autoprefixer move together.
+      tailwind:
+        patterns:
+          - tailwindcss
+          - postcss
+          - autoprefixer
+      # ESLint + plugins.
+      eslint:
+        patterns:
+          - eslint
+          - "eslint-*"
+          - "@typescript-eslint/*"
+
+  # Backend (FastAPI + auth + tests) ---------------------------------------
+  - package-ecosystem: pip
+    directory: /server
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
+
+  # Repo-root tooling (semantic-release, commitlint) -----------------------
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: scope
+
+  # GitHub Actions used by the CI workflow ---------------------------------
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
