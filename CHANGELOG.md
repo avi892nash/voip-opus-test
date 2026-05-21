@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/avi892nash/voip-opus-test/compare/v1.0.0...v1.1.0) (2026-05-21)
+
+
+### Features
+
+* **deb:** auto-update via systemd timer + GitHub releases ([#16](https://github.com/avi892nash/voip-opus-test/issues/16)) ([eee1bed](https://github.com/avi892nash/voip-opus-test/commit/eee1bed14e5cb0b3bf92f47c6f15f828c1cdddbf))
+
 # 1.0.0 (2026-05-21)
 
 
