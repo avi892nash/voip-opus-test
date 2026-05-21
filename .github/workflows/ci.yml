@@ -2,7 +2,7 @@ name: CI / CD
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
@@ -17,7 +17,7 @@ env:
 #           ├─► test-server                  │
 #           └─► build-deb ──► test-deb ──────┘
 #
-# Pipeline shape (push to main, adds release):
+# Pipeline shape (push to master, adds release):
 #
 #   version ──► lint-web ──► build-web ──────────┐
 #           ├─► test-server                       │
@@ -248,13 +248,13 @@ jobs:
   # Release — semantic-release computes the next version from conventional
   # commits since the last tag, bumps package.json + web/package.json, writes
   # CHANGELOG.md, commits + tags, creates a GitHub Release with the .deb
-  # attached. Only runs on push to main, only after every test passes.
+  # attached. Only runs on push to master, only after every test passes.
   # ---------------------------------------------------------------------------
   release:
     name: Release
     runs-on: ubuntu-latest
     needs: [version, build-web, test-server, test-deb]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     permissions:
       contents: write
       issues: write

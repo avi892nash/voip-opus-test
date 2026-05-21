@@ -1,13 +1,13 @@
 // semantic-release config.
 //
-// Triggered from .github/workflows/ci.yml on every push to main. Walks the
+// Triggered from .github/workflows/ci.yml on every push to master. Walks the
 // conventional commits since the last tag, decides the next semver bump,
 // updates package.json + web/package.json, writes a changelog, commits +
 // tags, creates a GitHub Release, and attaches the .deb produced by the
 // preceding build-deb job.
 
 module.exports = {
-  branches: ['main'],
+  branches: ['master'],
   plugins: [
     // Analyze conventional commits → next semver bump.
     '@semantic-release/commit-analyzer',
@@ -40,7 +40,7 @@ module.exports = {
       },
     ],
 
-    // Commit the version bump + changelog back to main. The `[skip ci]`
+    // Commit the version bump + changelog back to master. The `[skip ci]`
     // suffix prevents this commit from re-triggering CI in a loop.
     [
       '@semantic-release/git',
