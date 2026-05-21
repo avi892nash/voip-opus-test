@@ -7,7 +7,10 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '20'
+  # 22 is the active Node LTS as of late 2025. Required by semantic-release
+  # v25, which engine-pins ^22.14.0 || >=24.10.0. Vite 8 + plugin-react 6
+  # both want ^20.19 || >=22.12, satisfied by 22.x.
+  NODE_VERSION: '22'
   PYTHON_VERSION: '3.12'
 
 # Pipeline shape (PR):
