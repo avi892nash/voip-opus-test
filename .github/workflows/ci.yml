@@ -26,11 +26,17 @@ env:
 jobs:
   # ---------------------------------------------------------------------------
   # PR commit-message lint (conventional commits).
+  #
+  # Skipped for dependabot — its commit messages are governed by the
+  # commit-message prefix configured in .github/dependabot.yml (chore(deps)),
+  # which is already conventional. Skipping avoids a redundant check and
+  # protects us if dependabot ever generates a multi-line commit body that
+  # trips the linter for reasons unrelated to the actual change.
   # ---------------------------------------------------------------------------
   commitlint:
     name: Commitlint
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
         with:
