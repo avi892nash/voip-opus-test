@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/avi892nash/voip-opus-test/compare/v1.1.0...v1.1.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* **ci:** bump Node to 22 (semantic-release v25 requires >=22.14.0) ([069a03d](https://github.com/avi892nash/voip-opus-test/commit/069a03dd54e282a604eeda4e29ae650456628637)), closes [#27](https://github.com/avi892nash/voip-opus-test/issues/27)
+
 # [1.1.0](https://github.com/avi892nash/voip-opus-test/compare/v1.0.0...v1.1.0) (2026-05-21)
 
 
