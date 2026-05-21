@@ -8,6 +8,13 @@
 #     so one ecosystem upgrade arrives as one PR, not three.
 #   - Cap open PRs per ecosystem so the queue stays reviewable.
 #
+# Notes on commit-message:
+#   `prefix` already contains the scope (chore(deps)/chore(deps-dev)). We
+#   intentionally omit `include: scope` because that option *appends* a
+#   second scope `(deps)` to whatever prefix you set, producing titles
+#   like `chore(deps)(deps): bump foo` — valid conventional-commits but
+#   ugly. Keep the prefix as the single source of scope.
+#
 # Reference: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
@@ -21,7 +28,6 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
-      include: scope
     groups:
       # Vite, its plugins, and esbuild ship together — when one moves we
       # want them all in one PR (peer-dep constraints often force this).
@@ -60,7 +66,6 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
-      include: scope
 
   # Repo-root tooling (semantic-release, commitlint) -----------------------
   - package-ecosystem: npm
@@ -71,7 +76,6 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
-      include: scope
 
   # GitHub Actions used by the CI workflow ---------------------------------
   - package-ecosystem: github-actions
@@ -81,4 +85,3 @@ updates:
     open-pull-requests-limit: 3
     commit-message:
       prefix: "chore(deps)"
-      include: scope
