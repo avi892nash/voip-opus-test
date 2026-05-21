@@ -89,7 +89,7 @@ jobs:
       - name: Build (tsc + vite)
         run: npm run build
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: web/dist
@@ -151,7 +151,7 @@ jobs:
       - name: Verify .deb exists
         run: ls -lh dist/voip-opus_*_all.deb
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: voip-opus-deb
           path: dist/voip-opus_*_all.deb
