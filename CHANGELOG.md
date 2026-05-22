@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/avi892nash/voip-opus-test/compare/v1.1.3...v1.1.4) (2026-05-22)
+
+
+### Bug Fixes
+
+* **web:** drop v6 `future` prop from BrowserRouter for react-router 7 ([000844a](https://github.com/avi892nash/voip-opus-test/commit/000844a14482c8d5f1328c5217f558cad1c87c0f))
+
 ## [1.1.3](https://github.com/avi892nash/voip-opus-test/compare/v1.1.2...v1.1.3) (2026-05-22)
 
 
