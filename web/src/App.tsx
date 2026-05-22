@@ -16,12 +16,7 @@ import { AuthProvider } from './lib/auth';
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true,
-        }}
-      >
+      <BrowserRouter>
         <div className="flex flex-col min-h-screen">
           <Navbar />
           <main className="flex-1">
