@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/avi892nash/voip-opus-test/compare/v1.1.4...v1.2.0) (2026-05-22)
+
+
+### Features
+
+* **deb:** rename release asset to voip-opus.deb for one-line install ([229848e](https://github.com/avi892nash/voip-opus-test/commit/229848e50e604bd96504ba428b6f4546bc3d3f1d))
+
 ## [1.1.4](https://github.com/avi892nash/voip-opus-test/compare/v1.1.3...v1.1.4) (2026-05-22)
 
 
