@@ -5,6 +5,10 @@ repo, how it fits together, and why each piece is the way it is. It's intended
 to be read top-to-bottom by a new contributor.
 
 Companion documents:
+- [concepts/](./concepts/README.md) — four standalone explainers for the
+  technologies this doc takes for granted: WebRTC, ICE/STUN/TURN, mesh vs
+  SFU, and JWT auth. Read these if you want the *why*; this doc is the
+  *what*.
 - [PROTOCOL.md](./PROTOCOL.md) — exact wire-protocol message reference.
 - [DEPLOY.md](./DEPLOY.md) — running it locally and deploying it for real.
 

@@ -68,13 +68,23 @@ old Python.
 
 ## Documentation
 
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — full implementation guide:
-  system diagrams, frontend + backend module maps, sequence diagrams for
-  signup / 1:1 calls / 3-person mesh / disconnect, trust boundary, data model,
-  build-run-test, and known limitations. **Start here.**
-- [docs/PROTOCOL.md](docs/PROTOCOL.md) — exact WebSocket message reference.
-- [docs/DEPLOY.md](docs/DEPLOY.md) — three deploy paths (managed, single VM, or
-  Pi + Cloudflare Tunnel via the .deb pipeline below).
+If you're new to the codebase, read in this order:
+
+1. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — full implementation guide:
+   system diagrams, frontend + backend module maps, sequence diagrams for
+   signup / 1:1 calls / 3-person mesh / disconnect, trust boundary, data model,
+   build-run-test, and known limitations.
+2. **[docs/concepts/](docs/concepts/README.md)** — standalone deep-dives on the
+   four infrastructure pieces this app assumes:
+   [WebRTC](docs/concepts/webrtc.md),
+   [ICE / STUN / TURN](docs/concepts/ice-stun-turn.md),
+   [Mesh vs SFU](docs/concepts/mesh-vs-sfu.md),
+   [JWT auth](docs/concepts/jwt-auth.md). Read these if any of those terms
+   feel hand-wavy.
+3. **[docs/PROTOCOL.md](docs/PROTOCOL.md)** — exact WebSocket message
+   reference.
+4. **[docs/DEPLOY.md](docs/DEPLOY.md)** — three deploy paths (managed, single
+   VM, or Pi + Cloudflare Tunnel via the .deb pipeline below).
 
 ## Operational scripts
 
