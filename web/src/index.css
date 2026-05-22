@@ -1,6 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind 4 replaces the three @tailwind directives with a single import.
+   The @config directive opts back into the legacy JS-based tailwind.config.js
+   so we keep our custom colours (primary/secondary/accent), fontFamily, and
+   keyframes without rewriting them as CSS `@theme {}` blocks in this PR. */
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
 @layer base {
   body {
