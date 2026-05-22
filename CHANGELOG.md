@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/avi892nash/voip-opus-test/compare/v1.1.1...v1.1.2) (2026-05-22)
+
+
+### Bug Fixes
+
+* **web:** migrate eslint to flat config for v10 compatibility ([ed5f6a6](https://github.com/avi892nash/voip-opus-test/commit/ed5f6a6dc63b8cc02d0caabe2719318e4e731671))
+
 ## [1.1.1](https://github.com/avi892nash/voip-opus-test/compare/v1.1.0...v1.1.1) (2026-05-21)
 
 
