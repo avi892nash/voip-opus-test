@@ -19,11 +19,11 @@ jobs:
         run: |
           gh release download "${{ github.event.release.tag_name }}" \
             --repo "${{ github.repository }}" \
-            --pattern 'voip-opus_*_all.deb' \
+            --pattern 'voip-opus*.deb' \
             --dir .
 
       - name: Install
-        run: sudo apt-get install -y ./voip-opus_*_all.deb
+        run: sudo apt-get install -y ./voip-opus*.deb
 
       - name: Verify package
         run: dpkg -s voip-opus | grep -E '^(Status|Version):'

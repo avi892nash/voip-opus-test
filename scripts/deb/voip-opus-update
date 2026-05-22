@@ -57,7 +57,10 @@ RELEASE_JSON=$(curl -fsSL \
 
 # Parse the JSON via python3 (guaranteed available — the FastAPI runtime
 # depends on it). Extract the release tag plus the URL of the first asset
-# whose filename matches voip-opus_*.deb.
+# whose filename starts with "voip-opus" and ends with ".deb". This matches
+# both the new stable name `voip-opus.deb` (current convention) and the
+# legacy versioned name `voip-opus_X.Y.Z+sha_all.deb` (pre-v1.1.5
+# releases), so Pis updating across the rename boundary keep working.
 TAG=""
 ASSET_URL=""
 { read -r TAG; read -r ASSET_URL; } < <(printf '%s' "$RELEASE_JSON" | python3 -c "
@@ -66,13 +69,13 @@ d = json.load(sys.stdin)
 print(d.get('tag_name') or '')
 for a in d.get('assets', []):
     n = a.get('name', '')
-    if n.startswith('voip-opus_') and n.endswith('.deb'):
+    if n.startswith('voip-opus') and n.endswith('.deb'):
         print(a.get('browser_download_url', ''))
         break
 ")
 
 [ -n "$TAG" ] || fail "release has no tag_name"
-[ -n "$ASSET_URL" ] || fail "no voip-opus_*.deb asset on release $TAG"
+[ -n "$ASSET_URL" ] || fail "no voip-opus*.deb asset on release $TAG"
 
 LOCAL_TAG=$(cat "$INSTALLED_TAG_FILE" 2>/dev/null || echo "")
 

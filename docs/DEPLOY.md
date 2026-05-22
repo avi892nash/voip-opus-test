@@ -121,11 +121,49 @@ The process listens on `127.0.0.1:8000`. Your existing Cloudflare Tunnel
 routes the public hostname to that loopback address. HTTPS is terminated by
 Cloudflare, so the browser sees a secure context and the mic API works.
 
-### 1. Build the .deb (once, on any Debian-friendly box)
+### 1. Install
 
-The build is `Architecture: all`, so you can build on a Mac, a Linux dev
-laptop, even a different Pi. The Python virtualenv is created on the target
-machine at install time, so wheels match the target's CPU.
+SSH into the Pi and run:
+
+```bash
+curl -fsSL https://github.com/avi892nash/voip-opus-test/releases/latest/download/voip-opus.deb \
+  -o /tmp/voip-opus.deb
+sudo apt install /tmp/voip-opus.deb
+```
+
+That's it. The release pipeline uploads each new build under the same
+stable filename (`voip-opus.deb`), so `releases/latest/download/` always
+points at the newest one. Only dependency is `curl`.
+
+The `apt install` runs `postinst` which:
+
+- Creates the `voip-opus` system user
+- Builds `/opt/voip-opus/.venv` and installs Python deps (so wheels match
+  the Pi's CPU, not the build runner's)
+- Generates a fresh `JWT_SECRET` in `/etc/voip-opus.env`
+- `mkdir /var/lib/voip-opus`
+- `systemctl daemon-reload && systemctl enable --now voip-opus`
+- Wires up `voip-opus-update.timer` so future releases install themselves
+  within ~30 minutes — you never run this command again
+
+### 2. Verify
+
+```bash
+systemctl status voip-opus
+journalctl -u voip-opus -f
+curl -i http://127.0.0.1:8000/api/health    # → {"status":"ok"}
+curl -I http://127.0.0.1:8000/              # → 200, serves index.html
+```
+
+If `api/health` 404s or returns nothing, check `journalctl -u voip-opus
+-n 100`. The most common first-install issue is the Python venv failing
+to build because `python3-venv` isn't installed; the postinst will say
+so explicitly.
+
+### 3. Build from source (alternative)
+
+Use this when you've made un-released changes you want to test on the
+Pi, or when the Pi has no internet egress.
 
 Build-machine prerequisites:
 
@@ -139,38 +177,23 @@ gem install --no-document fpm
 # or:  apt install ruby-dev && gem install fpm   # Debian/Ubuntu
 ```
 
-Then:
+Build, copy across, install. The build is `Architecture: all`, so you
+can build on a Mac, a Linux laptop, or another Pi — wheels are resolved
+at install time on the target:
 
 ```bash
 scripts/build-deb.sh
-# → dist/voip-opus_0.1.0_all.deb
-```
+# → dist/voip-opus_X.Y.Z+sha_all.deb   (X.Y.Z from package.json)
 
-### 2. Install on the Pi
-
-```bash
-scp dist/voip-opus_0.1.0_all.deb pi@your-pi:/tmp/
+scp dist/voip-opus_*_all.deb pi@your-pi:/tmp/
 ssh pi@your-pi
-sudo apt install /tmp/voip-opus_0.1.0_all.deb
+sudo apt install -y /tmp/voip-opus_*_all.deb
 ```
 
-That's the whole install. The `apt install` runs `postinst` which:
-- Creates the `voip-opus` system user
-- Builds `/opt/voip-opus/.venv` and installs Python deps
-- Generates a fresh `JWT_SECRET` in `/etc/voip-opus.env`
-- `mkdir /var/lib/voip-opus`
-- `systemctl daemon-reload && systemctl enable --now voip-opus`
+Same `postinst` runs (system user, venv, JWT secret, systemd enable,
+auto-update timer).
 
-Verify:
-
-```bash
-systemctl status voip-opus
-journalctl -u voip-opus -f
-curl -i http://127.0.0.1:8000/api/health    # → {"status":"ok"}
-curl -I http://127.0.0.1:8000/              # → 200, serves index.html
-```
-
-### 3. Point Cloudflare Tunnel at it
+### 4. Point Cloudflare Tunnel at it
 
 In your Cloudflare Zero Trust dashboard (or `cloudflared` config), add an
 ingress rule for the hostname you want to serve this from:
@@ -194,7 +217,7 @@ restart voip-opus`.
 Open `https://voip.devshram.com` — same origin serves the PWA, the API, and
 the WebSocket. The browser sees HTTPS, mic permission works.
 
-### 4. Upgrades — automatic by default
+### 5. Upgrades — automatic by default
 
 The .deb ships a small auto-updater. After install you'll have:
 
@@ -209,7 +232,9 @@ When a new GitHub release is published:
 1. Within ~30 minutes, the timer fires.
 2. The script reads `/var/lib/voip-opus/installed-tag`, compares it to
    the tag on `releases/latest`, and if they differ, downloads the
-   attached `voip-opus_*.deb` and runs `apt install`.
+   attached `voip-opus.deb` (or any `voip-opus*.deb` for older
+   releases — the script tolerates both naming schemes) and runs
+   `apt install`.
 3. `apt install` runs `postinst` again — restarts `voip-opus.service`,
    re-runs the venv install (picks up new Python deps), preserves
    `/etc/voip-opus.env` (conffile).
@@ -228,13 +253,18 @@ systemctl list-timers voip-opus-update.timer
 sudo systemctl disable --now voip-opus-update.timer
 ```
 
-If you'd rather upgrade manually, disable the timer and either
-`scp + apt install` a hand-built `.deb`, or
-`gh release download vX.Y.Z -p '*.deb' -R avi892nash/voip-opus-test`
-then `sudo apt install ./voip-opus_*.deb`. The conffile preserves your
-JWT_SECRET across upgrades.
+If you'd rather upgrade manually, disable the timer and re-run the
+same one-liner from §1 — it always downloads the latest. Or for a
+specific older release:
 
-### 5. Backups (3-2-1 in three small steps)
+```bash
+gh release download vX.Y.Z -p 'voip-opus*.deb' -R avi892nash/voip-opus-test
+sudo apt install ./voip-opus*.deb
+```
+
+The conffile preserves your `JWT_SECRET` across upgrades.
+
+### 6. Backups (3-2-1 in three small steps)
 
 The two cron jobs below give you **three copies** of the data (live, local,
 remote) on **two media** (NVMe, USB / cloud) with **one off-site**.
@@ -271,7 +301,7 @@ their `DB_PATH` to `/var/lib/voip-opus/voip.db`.)
 aside to `voip.db.pre-restore-<timestamp>` rather than overwriting, then
 restores atomically (temp file + rename) and verifies the user count.
 
-### 6. Test the backup once before you need it
+### 7. Test the backup once before you need it
 
 ```bash
 # Take a backup
