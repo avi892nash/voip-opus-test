@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/avi892nash/voip-opus-test/compare/v1.1.2...v1.1.3) (2026-05-22)
+
+
+### Bug Fixes
+
+* **web:** migrate Tailwind config for v4 compatibility ([5a849d5](https://github.com/avi892nash/voip-opus-test/commit/5a849d57e4cfce9f474fc9c9b9d356a23bc77a0f))
+
 ## [1.1.2](https://github.com/avi892nash/voip-opus-test/compare/v1.1.1...v1.1.2) (2026-05-22)
 
 
