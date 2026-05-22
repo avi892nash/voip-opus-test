@@ -52,12 +52,23 @@ module.exports = {
 
     // Create the GitHub Release with notes + attach the prebuilt .deb that
     // the build-deb job uploaded as an artifact.
+    //
+    // `name: 'voip-opus.deb'` overrides the upload filename so the public
+    // asset URL is *stable* across releases:
+    //
+    //   https://github.com/avi892nash/voip-opus-test/releases/latest/download/voip-opus.deb
+    //
+    // That makes the install command a one-liner (no API call to find the
+    // versioned filename). The on-disk build artifact still has the version
+    // baked in (voip-opus_X.Y.Z+sha_all.deb) — only the *uploaded* name is
+    // the stable alias. The dpkg-internal package version is unchanged.
     [
       '@semantic-release/github',
       {
         assets: [
           {
             path: 'dist/voip-opus_*_all.deb',
+            name: 'voip-opus.deb',
             label: 'voip-opus .deb (any architecture)',
           },
         ],
