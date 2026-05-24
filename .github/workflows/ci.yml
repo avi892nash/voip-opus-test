@@ -257,6 +257,41 @@ jobs:
             || { journalctl -u voip-opus -n 50 --no-pager; exit 1; }
           echo "PASS: voip-opus.service active"
 
+      - name: Verify default bind is 127.0.0.1 + HOST env override works
+        # The unit ships with HOST=127.0.0.1 as the safe default. This step
+        # asserts (1) out of the box, the service is on loopback only — so
+        # the "never accidentally exposed on LAN" property is regression-
+        # tested, and (2) editing /etc/voip-opus.env to HOST=0.0.0.0 +
+        # restart actually changes the bind, so the override knob isn't
+        # silently broken by a typo in the unit template.
+        run: |
+          fail() { echo "FAIL: $*"; exit 1; }
+
+          # 1. Default bind: 127.0.0.1
+          ss -tnlp 2>/dev/null | awk '{print $4}' | grep -q "^127\.0\.0\.1:8000$" \
+            || { ss -tnlp; fail "service not bound to 127.0.0.1:8000 by default"; }
+          ss -tnlp 2>/dev/null | awk '{print $4}' | grep -q "^0\.0\.0\.0:8000$" \
+            && { ss -tnlp; fail "service unexpectedly bound to 0.0.0.0 with default env"; }
+          echo "PASS: default bind is 127.0.0.1"
+
+          # 2. Flip HOST in the env file, restart, verify 0.0.0.0
+          sudo sed -i 's/^HOST=127\.0\.0\.1$/HOST=0.0.0.0/' /etc/voip-opus.env
+          grep -q "^HOST=0\.0\.0\.0$" /etc/voip-opus.env \
+            || fail "sed didn't flip HOST in env file"
+          sudo systemctl restart voip-opus.service
+          # Give uvicorn a moment to (re)bind
+          for i in 1 2 3 4 5; do
+            sleep 1
+            ss -tnlp 2>/dev/null | awk '{print $4}' | grep -q "^0\.0\.0\.0:8000$" && break
+          done
+          ss -tnlp 2>/dev/null | awk '{print $4}' | grep -q "^0\.0\.0\.0:8000$" \
+            || { ss -tnlp; journalctl -u voip-opus -n 30 --no-pager; fail "HOST=0.0.0.0 didn't take effect after restart"; }
+          echo "PASS: HOST=0.0.0.0 env override binds 0.0.0.0"
+
+          # 3. Restore the default so later steps see the documented state
+          sudo sed -i 's/^HOST=0\.0\.0\.0$/HOST=127.0.0.1/' /etc/voip-opus.env
+          sudo systemctl restart voip-opus.service
+
       - name: Verify auto-update timer + updater script
         # Catches regressions where someone edits the source files but the
         # .deb build / postinst doesn't apply them, and shell-script bugs
