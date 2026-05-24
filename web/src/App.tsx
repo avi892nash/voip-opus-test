@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import InstallPrompt from './components/InstallPrompt';
+import VersionBadge from './components/VersionBadge';
 import Landing from './routes/Landing';
 import Learn from './routes/Learn';
 import Demo from './routes/Demo';
@@ -55,6 +56,7 @@ function App() {
           </main>
           <Footer />
           <InstallPrompt />
+          <VersionBadge />
         </div>
       </BrowserRouter>
     </AuthProvider>

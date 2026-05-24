@@ -2,6 +2,15 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import basicSsl from '@vitejs/plugin-basic-ssl'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+// Source the version from web/package.json. semantic-release bumps both
+// this file and root package.json in lockstep on release, so the badge
+// always matches what shipped.
+const pkg = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'),
+)
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -68,6 +77,11 @@ export default defineConfig(({ mode }) => {
         '/api': { target: proxyTarget, changeOrigin: true },
         '/ws': { target: wsProxyTarget, changeOrigin: true, ws: true },
       },
+    },
+    define: {
+      // Compile-time constant — replaced inline at build time, not read at
+      // runtime. Used by <VersionBadge /> in the bottom-right of the page.
+      __APP_VERSION__: JSON.stringify(pkg.version),
     },
     build: {
       outDir: 'dist',
