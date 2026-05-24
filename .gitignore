@@ -1,25 +1,44 @@
-# Editor / OS
+# --- Editor / OS ---
 .vscode/
 .idea/
 .DS_Store
 .claude/
+*.swp
+*.swo
 
-# Python
+# --- Python ---
 venv/
 .venv/
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-# Frontend
-web/node_modules/
+# --- Node ---
+# Matches root-level node_modules and any nested one (e.g. web/node_modules/).
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- Frontend build artifacts ---
 web/dist/
 web/.vite/
+web/dev-dist/
+*.tsbuildinfo
 
-# Local state
+# --- Local state ---
 .env
 .env.local
+.env.*.local
 data/
 *.db
 *.db-shm
 *.db-wal
+*.log

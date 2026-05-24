@@ -10,6 +10,10 @@
   "license": "MIT",
   "scripts": {
     "install:all": "npm install --prefix web",
+    "dev": "concurrently -k -n server,web -c blue,green \"npm run dev:server\" \"npm run dev:web\"",
+    "dev:server": ".venv/bin/uvicorn server.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir server",
+    "dev:web": "npm run dev --prefix web",
+    "dev:tunnel": "cloudflared tunnel --url https://localhost:5174 --no-tls-verify",
     "build": "npm run build --prefix web",
     "lint": "npm run lint --prefix web",
     "typecheck": "npm run --prefix web -- exec tsc -- --noEmit",
@@ -22,6 +26,7 @@
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/exec": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
+    "concurrently": "^9.2.1",
     "semantic-release": "^25.0.3"
   }
 }
