@@ -127,6 +127,83 @@ into the image and runs `uvicorn` without `--reload`. Frontend HMR works
 (it bind-mounts `web/`), backend changes require a rebuild. For
 iterative backend work, prefer `npm run dev` above.
 
+## Install (Debian / Ubuntu / Raspberry Pi)
+
+Run the whole stack — FastAPI backend, built PWA, auth, signaling — as a
+hardened single-process systemd service on any Debian-based box. The
+package ships with an auto-update timer, so once installed you don't have
+to touch it again to stay on the latest release.
+
+> **Requires:** Debian 11+ / Ubuntu 22.04+ / Raspbian, plus `python3` and
+> `python3-venv` (declared as package deps; `apt` installs them if missing).
+
+### Install
+
+```bash
+curl -fsSL https://github.com/avi892nash/voip-opus-test/releases/latest/download/voip-opus.deb \
+  -o /tmp/voip-opus.deb && sudo apt install /tmp/voip-opus.deb
+```
+
+The release pipeline always uploads under the stable filename
+`voip-opus.deb`, so `releases/latest/download/` always points at the
+newest build. The `postinst` script creates the dedicated `voip-opus`
+user, builds the Python venv on the target (so wheels match the Pi's
+CPU), generates a fresh `JWT_SECRET`, and starts the service.
+
+The service listens on `127.0.0.1:8000`. Point Cloudflare Tunnel (or
+Caddy, nginx, …) at that address for public HTTPS — the browser refuses
+`getUserMedia` over plain HTTP, so a TLS-terminating proxy is mandatory.
+
+### What gets installed
+
+| Path | Purpose |
+|---|---|
+| `/opt/voip-opus/` | FastAPI source + `web-dist/` (built PWA) + `.venv/` |
+| `/etc/voip-opus.env` | Editable env (`JWT_SECRET` generated on first install, kept on upgrade — `dpkg` conffile) |
+| `/var/lib/voip-opus/` | SQLite DB + updater state (`installed-tag`) |
+| `/lib/systemd/system/voip-opus.service` | The main process — `uvicorn` on `127.0.0.1:8000`, sandboxed via `ProtectSystem=strict`, `PrivateTmp`, `NoNewPrivileges`, … |
+| `/lib/systemd/system/voip-opus-update.{service,timer}` | Auto-updater (polls GitHub Releases) |
+| `/usr/bin/voip-opus-update` | The updater script itself |
+
+### How auto-upgrade works
+
+After install, two units run:
+
+| Unit | What it does |
+|---|---|
+| `voip-opus.service` | Runs `uvicorn server.main:app --host 127.0.0.1 --port 8000 --proxy-headers` as the `voip-opus` user |
+| `voip-opus-update.timer` | Every **5 min**: `voip-opus-update` reads `/var/lib/voip-opus/installed-tag`, compares it to the tag on `releases/latest`, and `apt install`s the new `.deb` if they differ |
+
+Common operations:
+
+```bash
+systemctl status voip-opus                          # is it running?
+journalctl -u voip-opus -f                          # tail server logs
+journalctl -t voip-opus-update -f                   # tail updater logs
+systemctl list-timers voip-opus-update.timer        # next upgrade check
+sudo systemctl disable --now voip-opus-update.timer # opt out of auto-upgrade
+```
+
+### Configuration
+
+```bash
+sudo nano /etc/voip-opus.env       # edit JWT_SECRET, CORS_ORIGINS, DB_PATH, …
+sudo systemctl restart voip-opus
+```
+
+Upgrades preserve this file (declared as a `dpkg` conffile in `nfpm`-speak).
+
+### Uninstall
+
+```bash
+sudo apt remove voip-opus     # keeps /etc/voip-opus.env, /var/lib/voip-opus, the user
+sudo apt purge  voip-opus     # also removes those
+```
+
+Full context — Cloudflare Tunnel ingress rules, building from source on
+the build machine, alternative deploy paths (managed services / single
+Docker VM) — lives in [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Layout
 
 ```

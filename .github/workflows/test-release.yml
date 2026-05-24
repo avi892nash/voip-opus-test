@@ -28,17 +28,51 @@ jobs:
       - name: Verify package
         run: dpkg -s voip-opus | grep -E '^(Status|Version):'
 
+      - name: Verify stable .deb filename was published
+        # README's curl one-liner hits releases/latest/download/voip-opus.deb
+        # directly — if the release pipeline only uploads the versioned name
+        # (voip-opus_X.Y.Z+sha_all.deb), end users following the README hit a
+        # 404. The earlier --pattern 'voip-opus*.deb' download tolerates both
+        # names, so this is the assert that protects the stable URL contract.
+        run: |
+          test -e voip-opus.deb \
+            || { echo "FAIL: stable filename voip-opus.deb missing from release assets"; ls -la voip-opus*.deb; exit 1; }
+          echo "PASS: voip-opus.deb stable filename present"
+
       - name: Verify auto-update artefacts shipped
         run: |
+          fail() { echo "FAIL: $*"; exit 1; }
+
           for f in /usr/bin/voip-opus-update \
                    /lib/systemd/system/voip-opus-update.service \
                    /lib/systemd/system/voip-opus-update.timer; do
-            test -e "$f" || { echo "FAIL: $f missing"; exit 1; }
+            test -e "$f" || fail "$f missing"
           done
-          test -x /usr/bin/voip-opus-update
+          test -x /usr/bin/voip-opus-update || fail "voip-opus-update not executable"
+
+          # Timer is enabled and live (postinst should have done this)
+          [ "$(systemctl is-enabled voip-opus-update.timer)" = "enabled" ] \
+            || fail "voip-opus-update.timer is not enabled (got '$(systemctl is-enabled voip-opus-update.timer)')"
           systemctl list-timers voip-opus-update.timer | grep -q voip-opus-update \
-            || { echo "FAIL: timer not active"; systemctl status voip-opus-update.timer || true; exit 1; }
-          echo "PASS: auto-update timer is wired up"
+            || { systemctl status voip-opus-update.timer || true; fail "timer not in list-timers"; }
+
+          # Interval matches the source-of-truth (5 min). If this trips on
+          # an intentional change, update both this expected value and the
+          # matching one in ci.yml.
+          grep -q "^OnUnitActiveSec=5min$" /lib/systemd/system/voip-opus-update.timer \
+            || fail "OnUnitActiveSec is not 5min ($(grep ^OnUnitActiveSec /lib/systemd/system/voip-opus-update.timer))"
+          grep -q "^RandomizedDelaySec=1min$" /lib/systemd/system/voip-opus-update.timer \
+            || fail "RandomizedDelaySec is not 1min ($(grep ^RandomizedDelaySec /lib/systemd/system/voip-opus-update.timer))"
+
+          # Unit files parse cleanly + updater script parses as bash
+          systemd-analyze verify /lib/systemd/system/voip-opus-update.timer \
+            || fail "voip-opus-update.timer failed systemd-analyze verify"
+          systemd-analyze verify /lib/systemd/system/voip-opus-update.service \
+            || fail "voip-opus-update.service failed systemd-analyze verify"
+          bash -n /usr/bin/voip-opus-update \
+            || fail "voip-opus-update has bash syntax errors"
+
+          echo "PASS: auto-update timer wired up, at 5min interval, units valid"
 
       - name: Wait for service
         run: |

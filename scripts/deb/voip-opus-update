@@ -4,7 +4,7 @@
 #
 # Polls https://api.github.com/repos/avi892nash/voip-opus-test/releases/latest,
 # compares the tag against the locally-installed one, and if a newer .deb is
-# available, downloads it and runs `apt install`. Triggered every 30 minutes
+# available, downloads it and runs `apt install`. Triggered every 5 minutes
 # by /lib/systemd/system/voip-opus-update.timer.
 #
 # Designed to be safe to run repeatedly:

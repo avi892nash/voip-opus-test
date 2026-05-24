@@ -84,7 +84,7 @@ echo "  - Data dir:       $DATA_DIR"
 echo ""
 echo "The server listens on 127.0.0.1:8000. Point Cloudflare Tunnel"
 echo "(or any reverse proxy) at that address to expose it on a public URL."
-echo "Auto-update polls GitHub every 30 min; disable with:"
+echo "Auto-update polls GitHub every 5 min; disable with:"
 echo "  systemctl disable --now voip-opus-update.timer"
 echo ""
 

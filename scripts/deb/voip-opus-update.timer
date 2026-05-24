@@ -1,14 +1,14 @@
 # Poll for new voip-opus releases on a schedule.
 #
 #   OnBootSec=5min          first check 5 minutes after boot
-#   OnUnitActiveSec=30min   then every 30 minutes
-#   RandomizedDelaySec=5min jitter so a fleet of Pis doesn't all hit the
+#   OnUnitActiveSec=5min    then every 5 minutes
+#   RandomizedDelaySec=1min jitter so a fleet of Pis doesn't all hit the
 #                           GitHub API at the same wall-clock minute
 #
-# 30 minutes is a reasonable trade-off: snappy enough that users get fixes
-# within an hour of release, infrequent enough that we stay well under the
-# 60 req/hr unauthenticated GitHub API limit even with multiple Pis on the
-# same network egress IP.
+# Note on GitHub rate limits: 5-min interval = 12 req/hr/device against
+# the 60 req/hr unauthenticated limit per egress IP. Comfortable for ~4
+# devices on the same NAT; raise the interval (or authenticate the
+# request in /usr/bin/voip-opus-update) if you're running more than that.
 
 [Unit]
 Description=Periodically check for voip-opus updates
@@ -16,8 +16,8 @@ Wants=voip-opus-update.service
 
 [Timer]
 OnBootSec=5min
-OnUnitActiveSec=30min
-RandomizedDelaySec=5min
+OnUnitActiveSec=5min
+RandomizedDelaySec=1min
 Persistent=true
 Unit=voip-opus-update.service
 

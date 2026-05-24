@@ -257,6 +257,37 @@ jobs:
             || { journalctl -u voip-opus -n 50 --no-pager; exit 1; }
           echo "PASS: voip-opus.service active"
 
+      - name: Verify auto-update timer + updater script
+        # Catches regressions where someone edits the source files but the
+        # .deb build / postinst doesn't apply them, and shell-script bugs
+        # that would only show up at 03:00 on a Pi in the field.
+        run: |
+          fail() { echo "FAIL: $*"; exit 1; }
+
+          # 1. postinst should have enabled the timer
+          [ "$(systemctl is-enabled voip-opus-update.timer)" = "enabled" ] \
+            || fail "voip-opus-update.timer is not enabled (got '$(systemctl is-enabled voip-opus-update.timer)')"
+
+          # 2. Timer config matches the source-of-truth values. If you bump
+          #    the interval intentionally, update these expected values.
+          grep -q "^OnUnitActiveSec=5min$" /lib/systemd/system/voip-opus-update.timer \
+            || fail "OnUnitActiveSec is not 5min ($(grep ^OnUnitActiveSec /lib/systemd/system/voip-opus-update.timer))"
+          grep -q "^RandomizedDelaySec=1min$" /lib/systemd/system/voip-opus-update.timer \
+            || fail "RandomizedDelaySec is not 1min ($(grep ^RandomizedDelaySec /lib/systemd/system/voip-opus-update.timer))"
+
+          # 3. Unit files parse cleanly (catches typos / wrong sections /
+          #    references to non-existent users etc.)
+          systemd-analyze verify /lib/systemd/system/voip-opus-update.timer \
+            || fail "voip-opus-update.timer failed systemd-analyze verify"
+          systemd-analyze verify /lib/systemd/system/voip-opus-update.service \
+            || fail "voip-opus-update.service failed systemd-analyze verify"
+
+          # 4. The updater itself parses as valid bash
+          bash -n /usr/bin/voip-opus-update \
+            || fail "voip-opus-update has bash syntax errors"
+
+          echo "PASS: timer enabled at 5min interval, units valid, updater parses"
+
   # ---------------------------------------------------------------------------
   # Release — semantic-release computes the next version from conventional
   # commits since the last tag, bumps package.json + web/package.json, writes
