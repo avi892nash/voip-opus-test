@@ -19,15 +19,23 @@ Type=simple
 User=voip-opus
 Group=voip-opus
 WorkingDirectory=/opt/voip-opus
-EnvironmentFile=/etc/voip-opus.env
-Environment="WEB_DIST=/opt/voip-opus/web-dist"
 
-# Bind to localhost only — Cloudflare Tunnel (or any reverse proxy) terminates
-# TLS and reaches us over loopback. Never expose 8000 directly on the LAN
-# (browsers would refuse mic access without HTTPS anyway).
+# Safe defaults — declared BEFORE the EnvironmentFile so /etc/voip-opus.env
+# can override them. Pre-existing installs whose env file pre-dates the HOST
+# knob still get the loopback default (and PORT=8000) from these lines.
+Environment="HOST=127.0.0.1"
+Environment="PORT=8000"
+Environment="WEB_DIST=/opt/voip-opus/web-dist"
+EnvironmentFile=/etc/voip-opus.env
+
+# Default binds to localhost only — Cloudflare Tunnel (or any reverse proxy)
+# terminates TLS and reaches us over loopback. To bind 0.0.0.0 (LAN-direct
+# without a proxy), set HOST=0.0.0.0 in /etc/voip-opus.env and restart.
+# Mic still needs HTTPS — even on the LAN, browsers refuse getUserMedia on
+# plain http://<ip>:8000, so a TLS-terminating proxy is the usual answer.
 ExecStart=/opt/voip-opus/.venv/bin/uvicorn server.main:app \
-  --host 127.0.0.1 \
-  --port 8000 \
+  --host ${HOST} \
+  --port ${PORT} \
   --proxy-headers \
   --forwarded-allow-ips=127.0.0.1
 

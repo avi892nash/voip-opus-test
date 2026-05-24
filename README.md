@@ -187,11 +187,18 @@ sudo systemctl disable --now voip-opus-update.timer # opt out of auto-upgrade
 ### Configuration
 
 ```bash
-sudo nano /etc/voip-opus.env       # edit JWT_SECRET, CORS_ORIGINS, DB_PATH, …
+sudo nano /etc/voip-opus.env       # edit HOST, PORT, JWT_SECRET, CORS_ORIGINS, DB_PATH, …
 sudo systemctl restart voip-opus
 ```
 
 Upgrades preserve this file (declared as a `dpkg` conffile in `nfpm`-speak).
+
+**`HOST` — bind address.** Defaults to `127.0.0.1` so the service is only
+reachable through a reverse proxy fronting it (Cloudflare Tunnel, Caddy,
+nginx). Set to `0.0.0.0` for LAN-direct access — but note browsers still
+refuse `getUserMedia` over plain `http://<lan-ip>:8000`, so a
+TLS-terminating proxy (or local cert via mkcert) is the usual answer if
+you want the mic to work without going through Cloudflare.
 
 ### Uninstall
 
