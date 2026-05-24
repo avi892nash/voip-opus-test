@@ -1,3 +1,11 @@
+## [1.2.1](https://github.com/avi892nash/voip-opus-test/compare/v1.2.0...v1.2.1) (2026-05-24)
+
+
+### Bug Fixes
+
+* **ci:** sudo the env-file read in HOST-override test ([310ee85](https://github.com/avi892nash/voip-opus-test/commit/310ee85f428670e777c9f31c372c0cd17f1c4874))
+* **deb:** make uvicorn bind address configurable via HOST env (default 127.0.0.1) ([93e51cc](https://github.com/avi892nash/voip-opus-test/commit/93e51cc6047ce343304cf8f3f043db353e0f4740)), closes [#40](https://github.com/avi892nash/voip-opus-test/issues/40)
+
 # [1.2.0](https://github.com/avi892nash/voip-opus-test/compare/v1.1.4...v1.2.0) (2026-05-22)
 
 

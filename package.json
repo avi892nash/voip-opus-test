@@ -1,6 +1,6 @@
 {
   "name": "voip-opus",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Self-hosted Opus voice calls (1:1 + group rooms) over WebRTC, served as an installable PWA.",
   "repository": {
