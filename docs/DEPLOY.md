@@ -144,7 +144,7 @@ The `apt install` runs `postinst` which:
 - `mkdir /var/lib/voip-opus`
 - `systemctl daemon-reload && systemctl enable --now voip-opus`
 - Wires up `voip-opus-update.timer` so future releases install themselves
-  within ~30 minutes — you never run this command again
+  within ~5 minutes — you never run this command again
 
 ### 2. Verify
 
@@ -223,13 +223,17 @@ The .deb ships a small auto-updater. After install you'll have:
 
 - `/usr/bin/voip-opus-update` — polls GitHub for the latest release.
 - `voip-opus-update.service` — systemd oneshot that runs that script.
-- `voip-opus-update.timer` — fires the service every **30 minutes**
-  (5 minutes after boot, then every 30 minutes with up to 5 minutes of
-  jitter so a fleet of Pis doesn't all hit the API at the same second).
+- `voip-opus-update.timer` — fires the service every **5 minutes**
+  (first check 5 minutes after boot, then every 5 minutes with up to
+  1 minute of jitter so a fleet of Pis doesn't all hit the API at the
+  same second). 5-min interval = 12 req/hr/device against GitHub's
+  60 req/hr unauthenticated limit per egress IP — fine for ~4 devices
+  on the same NAT; raise the interval in
+  `/lib/systemd/system/voip-opus-update.timer` if you're running more.
 
 When a new GitHub release is published:
 
-1. Within ~30 minutes, the timer fires.
+1. Within ~5 minutes, the timer fires.
 2. The script reads `/var/lib/voip-opus/installed-tag`, compares it to
    the tag on `releases/latest`, and if they differ, downloads the
    attached `voip-opus.deb` (or any `voip-opus*.deb` for older
