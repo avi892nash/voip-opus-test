@@ -274,9 +274,12 @@ jobs:
             && { ss -tnlp; fail "service unexpectedly bound to 0.0.0.0 with default env"; }
           echo "PASS: default bind is 127.0.0.1"
 
-          # 2. Flip HOST in the env file, restart, verify 0.0.0.0
+          # 2. Flip HOST in the env file, restart, verify 0.0.0.0.
+          # /etc/voip-opus.env is mode 640 root:voip-opus (postinst tightens
+          # perms), so every read needs sudo too — the runner user can't see
+          # it directly.
           sudo sed -i 's/^HOST=127\.0\.0\.1$/HOST=0.0.0.0/' /etc/voip-opus.env
-          grep -q "^HOST=0\.0\.0\.0$" /etc/voip-opus.env \
+          sudo grep -q "^HOST=0\.0\.0\.0$" /etc/voip-opus.env \
             || fail "sed didn't flip HOST in env file"
           sudo systemctl restart voip-opus.service
           # Give uvicorn a moment to (re)bind
