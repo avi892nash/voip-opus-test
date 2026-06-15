@@ -3,5 +3,5 @@ uvicorn[standard]==0.47.0
 pydantic[email]==2.13.4
 PyJWT==2.12.1
 bcrypt==5.0.0
-pytest==9.0.3
+pytest==9.1.0
 httpx==0.28.1
